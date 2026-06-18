@@ -14,7 +14,7 @@ def masks_from_rois(f_roi, im_shape):
     masks = [rois[i].compute_mask(im_shape).astype(np.uint8)*255 for i in range(len(rois))]
 
     # compute union of masks
-    mask = np.any(masks, axis=0)
+    mask = np.any(masks, axis=0).astype(np.uint8)*255
 
     return masks, mask
 
@@ -32,7 +32,7 @@ def recover_matching_keypoints(
     rows, cols, _ = im_ref.shape
 
     # get masks from rois that were defined on ref image
-    masks, mask = masks_from_rois(ref_f_rois, im_ref.shape[0:2])
+    masks, mask_ref = masks_from_rois(ref_f_rois, im_ref.shape[0:2])
 
     # compute keypoints and descriptors of ref img
     sift = cv2.SIFT_create()
@@ -104,27 +104,33 @@ def recover_matching_keypoints(
         ax[1].plot(src_pts[inlier_inds, 0], src_pts[inlier_inds, 1], c='b', linewidth=0, markersize=6, marker='d')
         fig.savefig(outdir_matches_plots / f.name)
 
-        # ECC
-        # im_ref_gray = im_ref_gray.astype(np.float32)
-        # im_gray = cv2.cvtColor(im, cv2.COLOR_RGB2GRAY).astype(np.float32)
-        # warp_mode = cv2.MOTION_HOMOGRAPHY
-        # # The warp matrix is the initial homography, converted to float32 if needed
-        # warp_matrix = h.astype(np.float32)
-        # # Termination criteria: stop after 1000 iterations or when epsilon is reached
-        # criteria = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 1000, 1e-6)
-        # # The order of images: (templateImage, inputImage, warpMatrix, ...)
-        # # It will refine warp_matrix to best align inputImage to templateImage
-        # mask = cv2.dilate(masks, kernel, iterations=1)
-        # cc, refined_h = cv2.findTransformECC(im_ref_gray, im_gray, warp_matrix, warp_mode, criteria, None, mask)
-
         # apply homography to target image
-        im = cv2.cvtColor(im, cv2.COLOR_RGB2BGR)
-        warped_img = cv2.warpPerspective(im, h, (cols, rows))
-        # warped_img = cv2.warpPerspective(im, refined_h, (cols, rows))
+        # im = cv2.cvtColor(im, cv2.COLOR_RGB2BGR)
+        # warped_img = cv2.warpPerspective(im, h, (cols, rows))
+
+        # ECC
+        im_ref_gray = im_ref_gray.astype(np.float32)
+        im_gray = cv2.cvtColor(im, cv2.COLOR_RGB2GRAY).astype(np.float32)
+        warp_mode = cv2.MOTION_HOMOGRAPHY
+        # The warp matrix is the initial homography, converted to float32 if needed
+        warp_matrix = h.astype(np.float32)
+        # Termination criteria: stop after 1000 iterations or when epsilon is reached
+        eps = 0.001
+        criteria = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 1000, eps)
+        # The order of images: (templateImage, inputImage, warpMatrix, ...)
+        # It will refine warp_matrix to best align inputImage to templateImage
+        mask = cv2.dilate(mask_ref, kernel, iterations=1)
+        # cc, refined_h = cv2.findTransformECC(im_ref_gray, im_gray, warp_matrix, warp_mode, criteria, None, mask)
+        try:
+            cc, refined_h = cv2.findTransformECCWithMask(im_ref_gray, im_gray, mask_ref, mask, warp_matrix, warp_mode, criteria)
+            # apply homography to target image
+            im = cv2.cvtColor(im, cv2.COLOR_RGB2BGR)
+            warped_img = cv2.warpPerspective(im, refined_h, (cols, rows), flags=cv2.INTER_LINEAR + cv2.WARP_INVERSE_MAP)
         
-        # save warped image
-        cv2.imwrite(outdir_warped / f.name, warped_img)
-        # plt.show()
+            # save warped image
+            cv2.imwrite(outdir_warped / f.name, warped_img)
+        except:
+            print('ecc iterations did not converge')
 
     # return src_pts, dst_pts, H
     return
