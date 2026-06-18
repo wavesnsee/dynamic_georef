@@ -1,0 +1,6 @@
+ref_img:
+  fname: ''
+  f_rois: ''
+target_imgs:
+  dir: ''
+outdir: ''

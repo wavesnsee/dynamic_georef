@@ -1,0 +1,22 @@
+[project]
+name = "stab_fm"
+version = "0.1.0"
+description = "Stabilize images by feature matching detections at keypoints"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "pydantic>=2.13.4",
+    "pyyaml>=6.0.3",
+    "roi-editor",
+    "typer>=0.26.7",
+]
+
+[build-system]
+requires = ["uv_build>=0.8.22,<0.9.0"]
+build-backend = "uv_build"
+
+[tool.uv.sources]
+roi-editor = { git = "ssh://git@github.com/wavesnsee/roi_editor", rev = "main" }
+
+[project.scripts]
+stab_fm = "stab_fm.cli.app:app"
