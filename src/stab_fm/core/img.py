@@ -1,5 +1,6 @@
 import cv2
 import json
+from dateutil import parser
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -44,12 +45,12 @@ def read_camera_matrix_and_dist(f_calib):
     return K, dist_coeffs
 
 
-def read_json(filename):
+def read_json(fn):
     """
 
     Parameters
     ----------
-    filename : string
+    fn : string
         name of the file to load
 
     Returns
@@ -57,7 +58,7 @@ def read_json(filename):
     dict : dictionnary containing numpy arrays
     """
     try:
-        with open(filename, 'r') as infile:
+        with open(fn, 'r') as infile:
             dict = json.load(infile)
             for k in dict.keys():
                 if type(dict[k]) is list:
@@ -65,3 +66,12 @@ def read_json(filename):
             return dict
     except IOError:
         raise
+
+
+def get_date(fn):
+    ymd = fn.stem.split('_')[-3]
+    h = fn.stem.split('_')[-2]
+    mn = fn.stem.split('_')[-1]
+    date = f'{ymd[0:4]}-{ymd[4:6]}-{ymd[6:8]} {h}:{mn}'
+    date = parser.parse(date)
+    return date
