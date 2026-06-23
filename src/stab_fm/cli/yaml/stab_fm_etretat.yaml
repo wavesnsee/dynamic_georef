@@ -8,3 +8,4 @@ matching: 'flann' # bfmatcher or flann
 outdir: '/home/florent/Projects/Etretat/Etretat_central2/test_stab_fm/stab_fm_out/'
 compute_fm: False
 plot_fm: False
+warp: True

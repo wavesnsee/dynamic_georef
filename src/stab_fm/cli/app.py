@@ -7,7 +7,7 @@ from pydantic import BaseModel
 
 import typer
 
-from stab_fm.cli import fm, accuracy
+from stab_fm.cli import fm, accuracy, warp
 
 app = typer.Typer(no_args_is_help=True)
 
@@ -27,6 +27,7 @@ class AppConfig(BaseModel):
     matching: str
     compute_fm: bool
     plot_fm: bool
+    warp: bool
 
 def load_config(path: str) -> AppConfig:
     with open(path, "r", encoding="utf-8") as f:
@@ -62,7 +63,11 @@ def main(
         # Compute accuracy metrics
         accuracy.main(conf)
 
-        # apply stabilization transform
+        # warp
+        if conf.warp:
+            warp.main(conf)
+
+
 
 
     except Exception as e:  # noqa: BLE001
