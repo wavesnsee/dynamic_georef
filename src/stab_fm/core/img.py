@@ -75,3 +75,53 @@ def get_date(fn):
     date = f'{ymd[0:4]}-{ymd[4:6]}-{ymd[6:8]} {h}:{mn}'
     date = parser.parse(date)
     return date
+
+
+def edges(gray):
+
+    def apply_clahe(gray):
+        clahe = cv2.createCLAHE(clipLimit=1.0, tileGridSize=(8, 8))
+        return clahe.apply(gray)
+
+    def bilateral_smooth(gray):
+        return cv2.bilateralFilter(gray, 9, 75, 75)
+
+    def dynamic_canny(smooth):
+        sigma = np.std(smooth)
+        lower = max(20, int(0.66 * sigma))
+        upper = min(200, int(1.33 * sigma))
+        return cv2.Canny(smooth, lower, upper, apertureSize=3, L2gradient=True)
+
+    def sobel_gradient(gray):
+        sx = cv2.Sobel(gray, cv2.CV_64F, 1, 0)
+        sy = cv2.Sobel(gray, cv2.CV_64F, 0, 1)
+        return cv2.convertScaleAbs(np.sqrt(sx ** 2 + sy ** 2))
+
+    def laplacian_edge(gray):
+        lap = cv2.Laplacian(gray, cv2.CV_64F)
+        return cv2.convertScaleAbs(lap)
+
+    def fuse_edges(canny, lap, sobel):
+        fused = cv2.addWeighted(canny, 0.6, lap, 0.3, 0)
+        return cv2.addWeighted(fused, 0.7, sobel, 0.3, 0)
+
+    def morphology_close(fused):
+        kernel = np.ones((3, 3), np.uint8)
+        return cv2.morphologyEx(fused, cv2.MORPH_CLOSE, kernel)
+
+    def overlay_edges(frame, fused):
+        overlay = frame.copy()
+        overlay[fused > 80] = [0, 0, 255]
+        return overlay
+
+    def process_frame(gray):
+        clahe_gray = apply_clahe(gray)
+        smooth = bilateral_smooth(clahe_gray)
+        canny = dynamic_canny(smooth)
+        lap = laplacian_edge(smooth)
+        sobel = sobel_gradient(smooth)
+        fused = fuse_edges(canny, lap, sobel)
+        fused = morphology_close(fused)
+        return fused
+
+    return process_frame(gray)

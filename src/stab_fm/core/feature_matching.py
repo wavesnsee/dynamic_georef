@@ -1,4 +1,3 @@
-from roi_editor.core import roi
 import cv2
 import pandas as pd
 import numpy as np
@@ -8,23 +7,8 @@ from bokeh.models import Range1d
 from bokeh.layouts import row
 
 from stab_fm.core import img
+from stab_fm.core.mask import masks_from_rois
 
-
-
-def masks_from_rois(f_roi, im_shape):
-
-    # read rois
-    roi_ = roi.ROICollection(im_shape)
-    rois = roi_.load_from_json(f_roi)
-    rois = rois.rois
-
-    # compute masks from rois
-    masks = [rois[i].compute_mask(im_shape).astype(np.uint8)*255 for i in range(len(rois))]
-
-    # compute union of masks
-    mask = np.any(masks, axis=0).astype(np.uint8)*255
-
-    return masks, mask
 
 
 def set_matcher(type_matching):
@@ -144,7 +128,7 @@ def plot_src_and_dst_matches(src_pts, dst_pts, inlier_mask, im_ref, im, outdir_m
     save(layout)
 
 
-def run(ref_fn, ref_f_rois, target_imgs_dir, f_calib, type_matching, paths):
+def run(ref_fn, ref_f_rois, target_imgs_dir, f_calib, type_matching, path):
 
     # read reference image
     im_ref, im_ref_gray, h, w = img.read(ref_fn, f_calib)
@@ -204,13 +188,13 @@ def run(ref_fn, ref_f_rois, target_imgs_dir, f_calib, type_matching, paths):
         H, inlier_mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, 5)
 
         # save matches
-        save_matches(src_pts, dst_pts, inlier_mask, paths.matches_data, f.stem)
+        save_matches(src_pts, dst_pts, inlier_mask, path.matches_data, f.stem)
 
         # save homography
-        save_h(H, paths.h, f.stem)
+        save_h(H, path.h, f.stem)
 
         # save homography
-        save_h(H, paths.h, f.stem)
+        save_h(H, path.h, f.stem)
 
 
         # if ecc:
