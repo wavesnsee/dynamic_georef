@@ -78,6 +78,7 @@ def get_date(fn):
 
 
 def edges(gray):
+    # https://www.geeksforgeeks.org/python/real-time-edge-detection-using-opencv-python/
 
     def apply_clahe(gray):
         clahe = cv2.createCLAHE(clipLimit=1.0, tileGridSize=(8, 8))
