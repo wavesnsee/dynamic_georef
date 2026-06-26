@@ -7,7 +7,7 @@ from pydantic import BaseModel
 
 import typer
 
-from stab_fm.cli import fm, accuracy, warp
+from stab_fm.cli import fm, accuracy, warp, cam_mvts
 
 app = typer.Typer(no_args_is_help=True)
 
@@ -16,6 +16,7 @@ class RefImg(BaseModel):
     fname: Path
     f_rois_fm: Path
     f_rois_edges: Path
+    f_gcps: Path
 
 class TargetImgs(BaseModel):
     dir: Path
@@ -64,12 +65,12 @@ def main(
         # Compute accuracy metrics
         accuracy.main(conf)
 
+        # Compute camera movements
+        cam_mvts.main(conf)
+
         # warp
         if conf.warp:
             warp.main(conf)
-
-
-
 
     except Exception as e:  # noqa: BLE001
         typer.secho(f"An error occurred: {e}", fg=typer.colors.RED)
