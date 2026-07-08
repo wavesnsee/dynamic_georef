@@ -59,18 +59,24 @@ def plot_src_and_dst_matches_mpl(src_pts, dst_pts, inlier_mask, im_ref, im, outd
     # inlier_inds = np.where(inlier_mask == 1)
     inlier_inds = np.where(inlier_mask)
     fig, ax = plt.subplots(1, 2, figsize=(22, 12), sharex=True, sharey=True, tight_layout=True)
+    ax[0].set_title('Reference image')
     ax[0].imshow(im_ref)
+    ax[1].set_title('Image')
     ax[1].imshow(im)
     ax[0].plot(dst_pts[:, 0], dst_pts[:, 1], c='r', linewidth=0, markersize=6, marker='s')
     ax[0].plot(dst_pts[inlier_inds, 0], dst_pts[inlier_inds, 1], c='b', linewidth=0, markersize=6, marker='s')
     labels = np.arange(len(dst_pts[inlier_inds]))
     [ax[0].text(xi, yi, label, fontsize=10, ha='center', va='bottom') for xi, yi, label in zip(
         np.squeeze(dst_pts[inlier_inds, 0]), np.squeeze(dst_pts[inlier_inds, 1]), labels)]
-    ax[1].plot(src_pts[:, 0], src_pts[:, 1], c='r', linewidth=0, markersize=6, marker='d')
-    ax[1].plot(src_pts[inlier_inds, 0], src_pts[inlier_inds, 1], c='b', linewidth=0, markersize=6, marker='d')
+    ax[1].plot(src_pts[:, 0], src_pts[:, 1], c='r', linewidth=0, markersize=6, marker='d', label='matches')
+    ax[1].plot(src_pts[inlier_inds, 0].reshape(-1), src_pts[inlier_inds, 1].reshape(-1), c='b', linewidth=0,
+               markersize=6, marker='d', label='valid matches (ransac)')
+    ax[1].legend(loc='upper right')
     [ax[1].text(xi, yi, label, fontsize=10, ha='center', va='bottom') for xi, yi, label in zip(
         np.squeeze(src_pts[inlier_inds, 0]), np.squeeze(src_pts[inlier_inds, 1]), labels)]
+
     fig.savefig(outdir_matches_plots / (stem + '.jpg'))
+    plt.close('all')
 
 
 def plot_src_and_dst_matches(src_pts, dst_pts, inlier_mask, im_ref, im, outdir_matches_plots, name, h, w):
@@ -189,9 +195,6 @@ def run(ref_fn, ref_f_rois, target_imgs_dir, f_calib, type_matching, path):
 
         # save matches
         save_matches(src_pts, dst_pts, inlier_mask, path.matches_data, f.stem)
-
-        # save homography
-        save_h(H, path.h, f.stem)
 
         # save homography
         save_h(H, path.h, f.stem)
