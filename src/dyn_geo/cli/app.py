@@ -29,6 +29,7 @@ class AppConfig(BaseModel):
     matching: str
     compute_fm: bool
     plot_fm: bool
+    acc_metrics: bool
     warp: bool
 
 def load_config(path: str) -> AppConfig:
@@ -65,8 +66,9 @@ def main(
             fm.plot(conf)
 
         # Compute accuracy metrics
-        print('compute accuracy metrics between ref and target images')
-        accuracy.main(conf)
+        if conf.acc_metrics:
+            print('compute accuracy metrics between ref and target images')
+            accuracy.main(conf)
 
         # Compute camera movements
         print('compute dynamic georefs')
