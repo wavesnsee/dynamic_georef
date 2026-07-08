@@ -8,7 +8,6 @@ def run(target_imgs_dir, dir_h, dir_warped):
     ls = sorted(dir_h.glob('*.npy'))
 
     for f_h in ls:
-        print(f_h)
 
         # load homography matrix
         H = np.load(f_h)

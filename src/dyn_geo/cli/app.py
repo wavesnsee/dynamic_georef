@@ -76,6 +76,7 @@ def main(
 
         # warp
         if conf.warp:
+            print('warp images')
             warp.main(conf)
 
     except Exception as e:  # noqa: BLE001
