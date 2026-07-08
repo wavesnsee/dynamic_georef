@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import cv2
 from georef.operators import Georef
-from stab_fm.core import img
+from dyn_geo.core import img
 from scipy.spatial.transform import Rotation
 
 
@@ -67,6 +67,7 @@ def run(dir_h, f_gcps, outdir_cam_mvts):
     # extract gcps geo coordinates
     gcps_xy = df[['easting', 'northing']].to_numpy()
     gcps_xyz = df[['easting', 'northing', 'elevation']].to_numpy()
+
     ## applying rotation to the local system
     data = np.stack((gcps_xy[:, 0] - georef_params.local_srs.offset_easting,
                      gcps_xy[:, 1] - georef_params.local_srs.offset_northing)).T
@@ -124,10 +125,10 @@ def run(dir_h, f_gcps, outdir_cam_mvts):
         date.append(t)
 
         # get dynamic camera  angles and position
-        # R, _ = cv2.Rodrigues(rvec)
-        # R_world = R.T  # Invert: csamera-to-world
-        # # Choose your convention: 'xyz', 'zyx', 'zxy', etc.
-        # euler = Rotation.from_matrix(R_world).as_euler('xyz', degrees=True)
+        R, _ = cv2.Rodrigues(rvec)
+        R_world = R.T  # Invert: csamera-to-world
+        # Choose your convention: 'xyz', 'zyx', 'zxy', etc.
+        euler = Rotation.from_matrix(R_world).as_euler('xyz', degrees=True)
         # yaw, pitch, roll = euler
         # print(f"Roll:  {roll:.2f}°")
         # print(f"Pitch: {pitch:.2f}°")

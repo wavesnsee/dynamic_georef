@@ -5,8 +5,7 @@ ref_img:
   f_gcps: '/home/florent/Projects/Etretat/Geodesie/GCPS_2025/fichiers_correspondance_coordonnees_relles_vs_pixels/CAM44/gcps_CAM44.csv'
 target_imgs:
   dir: '/home/florent/Projects/Etretat/Etretat_central2/test_stab_fm/target_imgs'
-f_calib: '/home/florent/Projects/Etretat/Etretat_central2/info/calibration/calib_CAM44.json'
-f_georef: '/home/florent/Projects/Etretat/Etretat_central2/info/georef_2025/georef_CAM44.json'
+f_cam_params: '/home/florent/Projects/Etretat/Etretat_central2/info/cam_params_central2.json'
 matching: 'flann' # bfmatcher or flann
 outdir: '/home/florent/Projects/Etretat/Etretat_central2/test_stab_fm/stab_fm_out/'
 compute_fm: False

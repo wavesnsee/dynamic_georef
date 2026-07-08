@@ -1,5 +1,5 @@
-from stab_fm.core import accuracy_metrics
-from stab_fm.cli.paths_subdirs_out import Paths
+from dyn_geo.core import accuracy_metrics
+from dyn_geo.cli.paths_subdirs_out import Paths
 
 def main(conf):
 

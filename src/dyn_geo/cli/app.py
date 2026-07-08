@@ -7,7 +7,7 @@ from pydantic import BaseModel
 
 import typer
 
-from stab_fm.cli import fm, accuracy, warp, cam_mvts
+from dyn_geo.cli import fm, accuracy, warp, cam_mvts
 
 app = typer.Typer(no_args_is_help=True)
 

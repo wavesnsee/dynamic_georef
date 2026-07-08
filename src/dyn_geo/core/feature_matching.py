@@ -6,8 +6,8 @@ from bokeh.plotting import figure, save, output_file
 from bokeh.models import Range1d
 from bokeh.layouts import row
 
-from stab_fm.core import img
-from stab_fm.core.mask import masks_from_rois
+from dyn_geo.core import img
+from dyn_geo.core.mask import masks_from_rois
 
 
 

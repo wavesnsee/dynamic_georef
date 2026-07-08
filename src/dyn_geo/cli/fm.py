@@ -1,5 +1,5 @@
-from stab_fm.core import feature_matching
-from stab_fm.cli.paths_subdirs_out import Paths
+from dyn_geo.core import feature_matching
+from dyn_geo.cli.paths_subdirs_out import Paths
 
 def main(conf):
 

@@ -7,8 +7,8 @@ from bokeh.layouts import column
 from matplotlib.path import Path
 from skimage.metrics import structural_similarity as ssim
 
-from stab_fm.core import img
-from stab_fm.core.mask import masks_from_rois
+from dyn_geo.core import img
+from dyn_geo.core.mask import masks_from_rois
 
 import numpy as np
 import cv2

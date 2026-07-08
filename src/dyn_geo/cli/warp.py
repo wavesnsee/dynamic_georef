@@ -1,5 +1,5 @@
-from stab_fm.core import warp_imgs
-from stab_fm.cli.paths_subdirs_out import Paths
+from dyn_geo.core import warp_imgs
+from dyn_geo.cli.paths_subdirs_out import Paths
 
 def main(conf):
 
