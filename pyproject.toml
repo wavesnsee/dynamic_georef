@@ -1,5 +1,5 @@
 [project]
-name = "stab_fm"
+name = "dyn_geo"
 version = "0.1.0"
 description = "Stabilize images by feature matching detections at keypoints"
 readme = "README.md"
@@ -30,4 +30,4 @@ roi-editor = { git = "ssh://git@github.com/wavesnsee/roi_editor", rev = "main" }
 georef = { git = "ssh://git@github.com/wavesnsee/georef", rev = "main" }
 
 [project.scripts]
-stab_fm = "stab_fm.cli.app:app"
+dyn_geo = "dyn_geo.cli.app:app"

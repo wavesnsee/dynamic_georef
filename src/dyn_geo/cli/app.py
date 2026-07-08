@@ -25,7 +25,7 @@ class AppConfig(BaseModel):
     ref_img: RefImg
     target_imgs: TargetImgs
     outdir: Path
-    f_calib: Path
+    f_cam_params: Path
     matching: str
     compute_fm: bool
     plot_fm: bool
@@ -56,16 +56,20 @@ def main(
     try:
         # Run feature matching
         if conf.compute_fm:
+            print('run feature matching and save Homography transforms')
             fm.main(conf)
 
         # Plot feature matching
         if conf.plot_fm:
+            print('plot matching points')
             fm.plot(conf)
 
         # Compute accuracy metrics
+        print('compute accuracy metrics between ref and target images')
         accuracy.main(conf)
 
         # Compute camera movements
+        print('compute dynamic georefs')
         cam_mvts.main(conf)
 
         # warp

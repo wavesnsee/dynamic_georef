@@ -7,7 +7,7 @@ def main(conf):
         conf.ref_img.fname,
         conf.ref_img.f_rois_fm,
         conf.target_imgs.dir,
-        conf.f_calib,
+        conf.f_cam_params,
         conf.matching,
         Paths(conf.outdir, conf.matching)
     )

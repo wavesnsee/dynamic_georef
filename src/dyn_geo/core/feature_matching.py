@@ -134,10 +134,10 @@ def plot_src_and_dst_matches(src_pts, dst_pts, inlier_mask, im_ref, im, outdir_m
     save(layout)
 
 
-def run(ref_fn, ref_f_rois, target_imgs_dir, f_calib, type_matching, path):
+def run(ref_fn, ref_f_rois, target_imgs_dir, f_cam_params, type_matching, path):
 
     # read reference image
-    im_ref, im_ref_gray, h, w = img.read(ref_fn, f_calib)
+    im_ref, im_ref_gray, h, w = img.read(ref_fn, f_cam_params)
 
     # get masks from rois that were defined on ref image
     masks, mask_ref = masks_from_rois(ref_f_rois, (h, w))
@@ -164,7 +164,7 @@ def run(ref_fn, ref_f_rois, target_imgs_dir, f_calib, type_matching, path):
 
     # loop through target images
     ls = sorted(target_imgs_dir.glob('*.jp*g'))
-    for f in ls:
+    for f in ls[0:2]:
         print(f)
 
         # initialize source and destination points
@@ -172,7 +172,7 @@ def run(ref_fn, ref_f_rois, target_imgs_dir, f_calib, type_matching, path):
         src_pts = []
 
         # read target image
-        im, im_gray, _, _ = img.read(f, f_calib)
+        im, im_gray, _, _ = img.read(f, f_cam_params)
 
         # loop through masks applied on target img
         for i in range(len(masks)):

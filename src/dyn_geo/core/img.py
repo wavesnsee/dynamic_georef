@@ -3,9 +3,10 @@ import json
 from dateutil import parser
 import numpy as np
 import matplotlib.pyplot as plt
+from georef.operators import Georef
 
 
-def read(f, f_calib):
+def read(f, f_cam_params):
 
     # read input img
     im = cv2.imread(f)
@@ -16,11 +17,11 @@ def read(f, f_calib):
     # convert to gray
     im_gray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
 
-    # read camera matrix and distorsion coeffs
-    K, dist_coeffs = read_camera_matrix_and_dist(f_calib)
+    # read camera georef parameters
+    georef_params = Georef.from_param_file(f_cam_params)
 
     # undistort grayscale img
-    im_gray = cv2.undistort(im_gray, K, dist_coeffs)
+    im_gray = cv2.undistort(im_gray, georef_params.intrinsic.camera_matrix, georef_params.dist_coeffs)
 
     # width, height of image
     h, w = im.shape[0:2]
@@ -37,12 +38,6 @@ def to_rgba(img, h, w):
     view[:, :, :3] = img
     view[:, :, 3] = 255
     return rgba
-
-
-def read_camera_matrix_and_dist(f_calib):
-    K = read_json(f_calib)["camera_matrix"]
-    dist_coeffs = read_json(f_calib)["dist_coeffs"]
-    return K, dist_coeffs
 
 
 def read_json(fn):

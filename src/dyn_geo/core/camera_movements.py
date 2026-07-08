@@ -52,11 +52,10 @@ def rotate_vector(data, theta):
     return data.dot(rotation_matrix)
 
 
-def run(dir_h, f_gcps, outdir_cam_mvts):
+def run(dir_h, f_gcps, f_cam_params, outdir_cam_mvts):
 
     # read camera georef parameters to get later camera matrix and distorion
-    f_camera_parameters = '/home/florent/dev/wavecams/scripts/adjust_camera_pose/camera_parameters_cam44.json'
-    georef_params = Georef.from_param_file(f_camera_parameters)
+    georef_params = Georef.from_param_file(f_cam_params)
 
     # read gcps file
     df = pd.read_csv(f_gcps)
@@ -151,6 +150,6 @@ def run(dir_h, f_gcps, outdir_cam_mvts):
     ax[0, 1].plot(date, t0)
     ax[1, 1].plot(date, t1)
     ax[2, 1].plot(date, t2)
-    plt.show()
+    # plt.show()
 
     return
