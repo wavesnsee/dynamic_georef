@@ -6,8 +6,12 @@ def main(conf):
     path = Paths(conf.outdir, conf.matching)
 
     camera_movements.run(path.h,
+                         conf.target_imgs.dir,
+                         conf.ref_img.fname,
                          conf.ref_img.f_gcps,
                          conf.f_cam_params,
-                         path.cam_params_upd,
-                         path. cam_mvts
+                         path.gcps,
+                         path.cam_params_upd_raw,
+                         path.cam_params_upd_smooth,
+                         path.cam_mvts
                          )
