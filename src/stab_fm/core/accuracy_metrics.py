@@ -124,9 +124,7 @@ def compute_error_metrics(
     for f_h in ls:
 
         # load homography matrix
-        print(f_h)
         H = np.load(f_h)
-
 
         # read target im
         im = cv2.imread(target_imgs_dir / (f_h.stem + '.jpg'))
@@ -145,7 +143,7 @@ def compute_error_metrics(
         phase_res.append(shift_px)
 
         # edge score
-        score, e1, e2 = edge_alignment_score(im_ref_gray, im_gray, mask=mask_ref)
+        score, e1, e2 = edge_alignment_score(im_ref_gray, warped_im_gray, mask=mask_ref)
         edge_score.append(score)
 
         # Peak Signal-to-Noise Ratio
@@ -156,7 +154,7 @@ def compute_error_metrics(
         # https://medium.com/scrapehero/exploring-image-similarity-approaches-in-python-b8ca0a3ed5a3
 
         try:
-            ssim_score, diff = ssim(im_ref_gray, im_gray, full=True, data_range=255)
+            ssim_score, diff = ssim(im_ref_gray, warped_im_gray, full=True, data_range=255)
             ssim_score = np.mean(diff[mask_ref==1])
             ssi.append(ssim_score)
         except:
@@ -212,10 +210,6 @@ def run(dir_matches_data, dir_h, ref_f_rois_edges, dir_acc_metrics, ref_fname, t
                                                              target_imgs_dir,
                                                              dir_h,
                                                              ref_f_rois_edges)
-
-
-    # compute area of matching points
-
 
     # Range1d objects to share the same ranges between p1 and p2
     x_range = Range1d(min(t), max(t))
