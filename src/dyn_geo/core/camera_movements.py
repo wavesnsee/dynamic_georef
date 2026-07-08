@@ -1,46 +1,13 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
 import cv2
+import json
 from georef.operators import Georef
 from dyn_geo.core import img
 from scipy.spatial.transform import Rotation
 
-
-def camera_angles(rvec, tvec):
-    """camera_ang: euler angles derived from rotation matrix
-    camera_ang[0] = x axis rotation (Pitch-Tilt)
-    camera_ang[1] = y axis rotation (Yaw-Azimuth)
-    camera_ang[2] = z axis rotation (Roll)
-
-    see opencv doc for camera position comprehension"""
-
-    rmat = cv2.Rodrigues(rvec)[0]
-    P = np.hstack((rmat, tvec))
-    _, _, _, _, _, _, camera_ang = cv2.decomposeProjectionMatrix(P)
-    return camera_ang
-
-def camera_position(rotation_mat, translation_mat):
-    """
-    Compute the camera position from the extrinsic parameters
-
-    Parameters
-    ----------
-    rotation_mat : numpy array of size (3,1)
-            The rotation matrix: extrinsec camera parameters (from the
-            calibration function).
-    translation_mat : numpy array of size (3,1)
-            The translation vector: extrinsic camera parameters (
-            from the calibration function)
-
-    Returns
-    -------
-    cam_posisiton : np.array
-        size 3 (Easting_UTM, Northing_UTM, Altitude)
-    """
-    (rotation, jacobian) = cv2.Rodrigues(rotation_mat)
-    cam_position = np.dot(-rotation.transpose(), translation_mat)
-    return cam_position
 
 def rotate_vector(data, theta):
     # make rotation matrix
@@ -52,9 +19,13 @@ def rotate_vector(data, theta):
     return data.dot(rotation_matrix)
 
 
-def run(dir_h, f_gcps, f_cam_params, outdir_cam_mvts):
+def compute_targets_extrinsic(dir_h, f_gcps, f_cam_params, outdir_cam_params_upd):
 
-    # read camera georef parameters to get later camera matrix and distorion
+    # Read initial camara_parameters file
+    with open(f_cam_params, 'r') as f:
+        cam_params = json.load(f)
+
+    # read camera parameters, whose extrinsic params will be updated for each target image
     georef_params = Georef.from_param_file(f_cam_params)
 
     # read gcps file
@@ -81,19 +52,8 @@ def run(dir_h, f_gcps, f_cam_params, outdir_cam_mvts):
     # list of homography matrixes
     ls_h = sorted(dir_h.glob('*.npy'))
 
-    # initialize variables
-    angle_0 = []
-    angle_1 = []
-    angle_2 = []
-    t0 = []
-    t1 = []
-    t2 = []
-    date = []
-
     # loop through homographies
     for f_h in ls_h:
-        print(f_h)
-
         # load homography matrix
         H = np.load(f_h)
 
@@ -104,9 +64,6 @@ def run(dir_h, f_gcps, f_cam_params, outdir_cam_mvts):
         gcps_uv_warped = cv2.perspectiveTransform(gpcs_uv.reshape(-1, 1, 2), H)
         gcps_uv_warped = gcps_uv_warped.reshape(-1, 2)
         gcps_uv_warped = gcps_uv_warped.reshape(gcps_uv_warped.shape[0], 1, gcps_uv_warped.shape[1])
-        # plt.plot(gpcs_uv[:,0], gpcs_uv[:, 1], 'k+')
-        # plt.plot(projected[:,0], projected[:, 1], 'bd')
-        # plt.show()
 
         # compute dynamic georef from warped gcps
         ret, rvec, tvec, inliers = cv2.solvePnPRansac(gcps_xyz.astype(np.float32),
@@ -119,37 +76,81 @@ def run(dir_h, f_gcps, f_cam_params, outdir_cam_mvts):
                                                       reprojectionError=2,
                                                       flags=cv2.SOLVEPNP_EPNP)
 
-        # image date
-        t = img.get_date(f_h)
+        # save updated camera parameters, changing only extrinsic parameters
+        cam_params['extrinsic_parameters']['rvec'] = rvec.reshape(-1).tolist()
+        cam_params['extrinsic_parameters']['tvec'] = tvec.reshape(-1).tolist()
+        with open(outdir_cam_params_upd / f_h.name.replace('.npy', '.json'), 'w') as f:
+            json.dump(cam_params, f, indent=2)
+    return
+
+
+def compute_cam_mvts(outdir_cam_params_upd):
+    ls = sorted(outdir_cam_params_upd.glob('*.json'))
+
+    date = []
+    angles = {}
+    position = {}
+    angles[0] = []
+    angles[1] = []
+    angles[2] = []
+    position[0] = []
+    position[1] = []
+    position[2] = []
+
+    for f_cp in ls:
+        # read individual camera parameters
+        georef_params = Georef.from_param_file(f_cp)
+
+        # time
+        t = img.get_date(f_cp)
         date.append(t)
 
-        # get dynamic camera  angles and position
-        R, _ = cv2.Rodrigues(rvec)
-        R_world = R.T  # Invert: csamera-to-world
-        # Choose your convention: 'xyz', 'zyx', 'zxy', etc.
-        euler = Rotation.from_matrix(R_world).as_euler('xyz', degrees=True)
-        # yaw, pitch, roll = euler
-        # print(f"Roll:  {roll:.2f}°")
-        # print(f"Pitch: {pitch:.2f}°")
-        # print(f"Yaw:   {yaw:.2f}°")
-
-        [p0, p1, p2] = camera_position(rvec, tvec)
-        [a0, a1, a2] = camera_angles(rvec, tvec)
-        angle_0.append(a0)
-        angle_1.append(a1)
-        angle_2.append(a2)
-        t0.append(p0)
-        t1.append(p1)
-        t2.append(p2)
+        # get camera angles and position
+        a0, a1, a2 = georef_params.extrinsic.camera_angles
+        p0, p1, p2 = georef_params.extrinsic.camera_position
+        angles[0].append(a0)
+        angles[1].append(a1)
+        angles[2].append(a2)
+        position[0].append(p0)
+        position[1].append(p1)
+        position[2].append(p2)
+    return date, angles, position
 
 
-    fig, ax = plt.subplots(3, 2)
-    ax[0, 0].plot(date, angle_0)
-    ax[1, 0].plot(date, angle_1)
-    ax[2, 0].plot(date, angle_2)
-    ax[0, 1].plot(date, t0)
-    ax[1, 1].plot(date, t1)
-    ax[2, 1].plot(date, t2)
-    # plt.show()
+def plot_cam_mvts(date, angles, position, outdir_cam_mvts):
 
-    return
+    fig, ax = plt.subplots(3, 2, figsize=(18, 8), sharex=True, tight_layout=True)
+    ax[0, 0].plot(date, angles[0], label = 'angle 0')
+    ax[0, 0].legend(loc='upper right', fontsize=14)
+    ax[0, 0].grid(True)
+    ax[1, 0].plot(date, angles[1], label = 'angle 1')
+    ax[1, 0].legend(loc='upper right', fontsize=14)
+    ax[1, 0].grid(True)
+    ax[2, 0].plot(date, angles[2], label = 'angle 2')
+    ax[2, 0].legend(loc='upper right', fontsize=14)
+    ax[2, 0].grid(True)
+    ax[0, 1].plot(date, position[0], label = 'position 0')
+    ax[0, 1].legend(loc='upper right', fontsize=14)
+    ax[0, 1].grid(True)
+    ax[1, 1].plot(date, position[1], label = 'position 1')
+    ax[1, 1].legend(loc='upper right', fontsize=14)
+    ax[1, 1].grid(True)
+    ax[2, 1].plot(date, position[2], label = 'position 2')
+    ax[2, 1].legend(loc='upper right', fontsize=14)
+    ax[2, 1].grid(True)
+    ax[2, 1].xaxis.set_major_formatter(mdates.DateFormatter('%Y/%m/%d %H'))
+    fig.suptitle('CAMERA MOVEMENTS')
+    fig.autofmt_xdate()
+    fig.savefig(outdir_cam_mvts / 'camera_movements.jpg')
+
+
+def run(dir_h, f_gcps, f_cam_params, outdir_cam_params_upd, outdir_cam_mvts):
+
+    # compute extrinsic parameters for each target image
+    compute_targets_extrinsic(dir_h, f_gcps, f_cam_params, outdir_cam_params_upd)
+
+    # compute camera movements
+    date, angles, position= compute_cam_mvts(outdir_cam_params_upd)
+
+    # plot camera movements
+    plot_cam_mvts(date, angles, position, outdir_cam_mvts)

@@ -8,5 +8,6 @@ def main(conf):
     camera_movements.run(path.h,
                          conf.ref_img.f_gcps,
                          conf.f_cam_params,
-                         path.cam_mvts
+                         path.cam_params_upd,
+                         path. cam_mvts
                          )
