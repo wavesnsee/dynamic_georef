@@ -164,7 +164,7 @@ def run(ref_fn, ref_f_rois, target_imgs_dir, f_cam_params, type_matching, path):
 
     # loop through target images
     ls = sorted(target_imgs_dir.glob('*.jp*g'))
-    for f in ls[0:2]:
+    for f in ls:
         print(f)
 
         # initialize source and destination points
