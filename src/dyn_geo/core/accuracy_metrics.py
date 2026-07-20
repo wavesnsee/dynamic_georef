@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from bokeh.plotting import figure, save, output_file
 from bokeh.models import Range1d, RangeTool
 from bokeh.layouts import column
+from bokeh.models import Div
 from matplotlib.path import Path
 from skimage.metrics import structural_similarity as ssim
 
@@ -211,6 +212,9 @@ def run(dir_matches_data, dir_h, ref_f_rois_edges, dir_acc_metrics, ref_fname, t
                                                              dir_h,
                                                              ref_f_rois_edges)
 
+    # Create a global title using a Div
+    global_title = Div(text="<h1>Accuracy metrics</h1>", width=600)
+
     # Range1d objects to share the same ranges between p1 and p2
     x_range = Range1d(min(t), max(t))
 
@@ -261,12 +265,7 @@ def run(dir_matches_data, dir_h, ref_f_rois_edges, dir_acc_metrics, ref_fname, t
 
     name = 'accuracy_metrics.html'
     output_file(dir_acc_metrics / name)
-    layout = column(p1, p2, p3, p4, p5, p6, select)
+    layout = column(global_title, p1, p2, p3, p4, p5, p6, select)
     save(layout)
-
-    # plt.plot(t, n, 'r')
-    # plt.plot(t, n_valid, 'b')
-    # plt.show()
-
 
     return
