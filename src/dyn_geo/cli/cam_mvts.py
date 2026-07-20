@@ -11,7 +11,7 @@ def main(conf):
                          conf.ref_img.f_gcps,
                          conf.f_cam_params,
                          path.gcps,
-                         path.cam_params_upd_raw,
-                         path.cam_params_upd_smooth,
+                         path.cam_params_raw,
+                         path.cam_params_smooth,
                          path.cam_mvts
                          )
