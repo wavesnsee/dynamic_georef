@@ -10,8 +10,11 @@ from dyn_geo.core import img
 from scipy.spatial.transform import Rotation as R
 from scipy.spatial.transform import Slerp
 from scipy.interpolate import make_splprep
-from matplotlib.dates import date2num
 from datetime import timedelta, datetime
+from bokeh.plotting import figure, save, output_file
+from bokeh.models import Range1d, RangeTool, ColumnDataSource, DatetimeTickFormatter
+from bokeh.layouts import column, gridplot
+from bokeh.models import Div
 
 
 def rotate_vector(data, theta):
@@ -212,8 +215,8 @@ def interp_targets_extrinsic(dates, georef_params_upd, f_cam_params):
     interp_dates = interp_dates[np.logical_and((interp_dates > dates.min()), (interp_dates < dates.max()))]
 
     # convert dates to num
-    dates = [date2num(dates[i]) for i in range(len(dates))]
-    interp_dates = [date2num(interp_dates[i]) for i in range(len(interp_dates))]
+    dates = [mdates.date2num(dates[i]) for i in range(len(dates))]
+    interp_dates = [mdates.date2num(interp_dates[i]) for i in range(len(interp_dates))]
 
     # initialize list of Georef objects
     georef_params_interp = [copy(georef_params) for _ in range(len(interp_dates))]
@@ -223,6 +226,9 @@ def interp_targets_extrinsic(dates, georef_params_upd, f_cam_params):
 
     # interpolation of tvec
     interp_tvecs = interp_targets_tvec(georef_params_upd, dates, interp_dates)
+
+    # convert interpolated dates back to datetime
+    interp_dates = [mdates.num2date(interp_dates[i]) for i in range(len(interp_dates))]
 
     # save updated georef parameters
     for i in range(len(interp_rvecs)):
@@ -277,46 +283,104 @@ def despike_cam_mvts(position_ref, position, threshold_d=0.6):
 
     return valid
 
+def plot_despiking(date, position, valid):
+    plot_h = 250
+    plot_w = 1800
+    x_range = Range1d(min(date), max(date))
 
-def plot_cam_mvts(date, angles, position, dates_interp, angles_interp, position_interp, angles_init, position_init,
-                  outdir_cam_mvts):
+    # Create a global title using a Div
+    global_title = Div(text="<h1>Despiking camera movements from camera position in beachcam coordinates system</h1>", width=plot_w)
 
-    fig, ax = plt.subplots(3, 2, figsize=(18, 8), sharex=True, tight_layout=True)
-    ax[0, 0].axhline(y=angles_init['yaw'], label='yaw init (°)', linewidth=2, color='gold', dashes=(4, 4))
-    ax[0, 0].plot(date, angles['yaw'], label = 'yaw (°)', marker='.', markersize=8)
-    ax[0, 0].plot(dates_interp, angles_interp['yaw'], color='r', label = 'yaw interp (°)', marker='.', markersize=8)
-    ax[0, 0].legend(loc='upper right', fontsize=14)
-    ax[0, 0].grid(True)
-    ax[1, 0].axhline(y=angles_init['pitch'], label='pitch init (°)', linewidth=2, color='gold', dashes=(4, 4))
-    ax[1, 0].plot(date, angles['pitch'], label = 'pitch (°)', marker='.', markersize=8)
-    ax[1, 0].plot(dates_interp, angles_interp['pitch'], color='r', label = 'pitch interp (°)', marker='.', markersize=8)
-    ax[1, 0].legend(loc='upper right', fontsize=14)
-    ax[1, 0].grid(True)
-    ax[2, 0].axhline(y=angles_init['roll'], label='roll init (°)', linewidth=2, color='gold', dashes=(4, 4))
-    ax[2, 0].plot(date, angles['roll'], label = 'roll (°)', marker='.', markersize=8)
-    ax[2, 0].plot(dates_interp, angles_interp['roll'], color='r', label='roll interp (°)', marker='.', markersize=8)
-    ax[2, 0].legend(loc='upper right', fontsize=14)
-    ax[2, 0].grid(True)
-    ax[0, 1].axhline(y=position_init['x'], label='x init (m)', linewidth=2, color='gold', dashes=(4, 4))
-    ax[0, 1].plot(date, position['x'], label = 'x (m)', marker='.', markersize=8)
-    ax[0, 1].plot(dates_interp, position_interp['x'], color='r', label='x interp (m)', marker='.', markersize=8)
-    ax[0, 1].legend(loc='upper right', fontsize=14)
-    ax[0, 1].grid(True)
-    ax[1, 1].axhline(y=position_init['y'], label='y init (m)', linewidth=2, color='gold', dashes=(4, 4))
-    ax[1, 1].plot(date, position['y'], label = 'y (m)', marker='.', markersize=8)
-    ax[1, 1].plot(dates_interp, position_interp['y'], color='r', label='y interp (m)', marker='.', markersize=8)
-    ax[1, 1].legend(loc='upper right', fontsize=14)
-    ax[1, 1].grid(True)
-    ax[2, 1].axhline(y=position_init['z'], label='z init (m)', linewidth=2, color='gold', dashes=(4, 4))
-    ax[2, 1].plot(date, position['z'], label = 'z (m)', marker='.', markersize=8)
-    ax[2, 1].plot(dates_interp, position_interp['z'], color='r', label='z interp (m)', marker='.', markersize=8)
-    ax[2, 1].legend(loc='upper right', fontsize=14)
-    ax[2, 1].grid(True)
-    ax[2, 1].xaxis.set_major_formatter(mdates.DateFormatter('%Y/%m/%d %H'))
-    fig.suptitle('CAMERA POSITION IN BEACHCAM COORDINATE SYSTEM')
-    fig.autofmt_xdate()
-    fig.savefig(outdir_cam_mvts / 'camera_movements.jpg')
+    # plot camera position, x
+    p1 = figure(width=plot_w, height=plot_h, tools="xpan,xwheel_zoom,reset", x_range=x_range)
+    p1.scatter(date, position['x'], legend_label="x", color='red', size=10, alpha=1)
+    p1.scatter(np.array(date)[valid], np.array(position['x'])[valid], legend_label="x valid", color='green', size=10,
+               alpha=1)
+    p1.yaxis.axis_label = 'Camera position, x'
 
+    # plot camera position, y
+    p2 = figure(width=plot_w, height=plot_h, tools="xpan,xwheel_zoom,reset", x_range=x_range)
+    p2.scatter(date, position['y'], legend_label="y", color='red', size=10, alpha=1)
+    p2.scatter(np.array(date)[valid], np.array(position['y'])[valid], legend_label="y valid", color='green', size=10,
+               alpha=1)
+    p2.yaxis.axis_label = 'Camera position, y'
+
+    # plot camera position, z
+    p3 = figure(width=plot_w, height=plot_h, tools="xpan,xwheel_zoom,reset", x_range=x_range)
+    p3.scatter(date, position['z'], legend_label="z", color='red', size=10, alpha=1)
+    p3.scatter(np.array(date)[valid], np.array(position['z'])[valid], legend_label="z valid", color='green', size=10,
+               alpha=1)
+    p3.yaxis.axis_label = 'Camera position, z'
+
+
+    name = 'despiking.html'
+    output_file(name)
+    layout = column(global_title, p1, p2, p3)
+    save(layout)
+
+    return
+
+
+def plot_cam_mvts(date, angles, position, dates_interp, angles_interp, position_interp,
+                   angles_init, position_init, outdir_cam_mvts):
+
+    output_file(outdir_cam_mvts / 'camera_movements.html', title='CAMERA POSITION IN BEACHCAM COORDINATE SYSTEM')
+
+    # Create a global title using a Div
+    global_title = Div(text="<h1>Camera movements</h1>", width=500)
+
+    def make_plot(label, unit, raw_vals, interp_vals, init_val, x_range=None, title=None):
+        p = figure(
+            width=200, height=260,
+            x_axis_type='datetime',
+            title=title,
+            x_range=x_range,
+            tools="pan,wheel_zoom,box_zoom,reset,save"
+        )
+        p.grid.visible = True
+
+        # init line (dashed gold horizontal line)
+        p.line(
+            x=[date[0], date[-1]], y=[init_val, init_val],
+            line_width=2, color='gold', line_dash=(4, 4),
+            legend_label=f'{label} init ({unit})'
+        )
+
+        # raw data
+        p.line(date, raw_vals, legend_label=f'{label} ({unit})')
+        p.scatter(date, raw_vals, size=8, marker='circle')
+
+        # interpolated data
+        p.line(dates_interp, interp_vals, color='red', legend_label=f'{label} interp ({unit})')
+        p.scatter(dates_interp, interp_vals, size=8, color='red', marker='circle')
+
+        p.legend.location = 'top_right'
+        p.legend.label_text_font_size = '10pt'
+        p.legend.click_policy = 'hide'
+
+        return p
+
+    # set x range
+    x_range = Range1d(min(date), max(date))
+
+    # plot camera angles and position
+    p_yaw = make_plot('yaw', '°', angles['yaw'], angles_interp['yaw'], angles_init['yaw'], x_range=x_range, title="Camera yaw")
+    p_pitch = make_plot('pitch', '°', angles['pitch'], angles_interp['pitch'], angles_init['pitch'], x_range=x_range, title="Camera pitch")
+    p_roll = make_plot('roll', '°', angles['roll'], angles_interp['roll'], angles_init['roll'], x_range=x_range, title="Camera roll")
+
+    p_x = make_plot('x', 'm', position['x'], position_interp['x'], position_init['x'], x_range=x_range, title="Camera position, x")
+    p_y = make_plot('y', 'm', position['y'], position_interp['y'], position_init['y'], x_range=x_range, title="Camera position, y")
+    p_z = make_plot('z', 'm', position['z'], position_interp['z'], position_init['z'], x_range=x_range, title="Camera position, z")
+
+    grid = gridplot(
+        [[p_yaw, p_x],
+         [p_pitch, p_y],
+         [p_roll, p_z]],
+        toolbar_location='above',
+        sizing_mode='stretch_width',
+    )
+    layout = column(global_title, grid)
+    save(layout)
 
 def run(dir_h, dir_imgs, ref_img_fn, f_gcps, f_cam_params, dir_gcps, odir_cparams_upd, odir_cparams_upd_smooth,
         outdir_cam_mvts):
@@ -333,6 +397,11 @@ def run(dir_h, dir_imgs, ref_img_fn, f_gcps, f_cam_params, dir_gcps, odir_cparam
 
     # Despike camera movements
     valid = despike_cam_mvts(position_init, position)
+
+    # plot despiking
+    plot_despiking(date, position, valid)
+
+    # keep only valid data
     date = np.array(date)[valid]
     georef_params_upd = np.array(georef_params_upd)[valid]
     angles['pitch'] = np.array(angles['pitch'])[valid]
