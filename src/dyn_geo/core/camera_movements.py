@@ -283,7 +283,7 @@ def despike_cam_mvts(position_ref, position, threshold_d=0.6):
     return valid
 
 
-def keep_valid(date, georef_params_upd, angles, position, valid):
+def keep_valid(date, georef_params_upd, angles, position, valid, outdir_cam_mvts):
     date = np.array(date)[valid]
     georef_params_upd = np.array(georef_params_upd)[valid]
     angles['pitch'] = np.array(angles['pitch'])[valid]
@@ -295,7 +295,7 @@ def keep_valid(date, georef_params_upd, angles, position, valid):
     return date, georef_params_upd, angles, position
 
 
-def plot_despiking(date, position, valid):
+def plot_despiking(date, position, valid, outdir_cam_mvts):
     plot_h = 250
     plot_w = 1800
     x_range = Range1d(min(date), max(date))
@@ -324,9 +324,7 @@ def plot_despiking(date, position, valid):
                alpha=1)
     p3.yaxis.axis_label = 'Camera position, z'
 
-
-    name = 'despiking.html'
-    output_file(name)
+    output_file(outdir_cam_mvts / 'despiking.html')
     layout = column(global_title, p1, p2, p3)
     save(layout)
 
@@ -411,10 +409,10 @@ def run(dir_h, dir_imgs, ref_img_fn, f_gcps, f_cam_params, dir_gcps, odir_cparam
     valid = despike_cam_mvts(position_init, position)
 
     # plot despiking
-    plot_despiking(date, position, valid)
+    plot_despiking(date, position, valid, outdir_cam_mvts)
 
     # keep only valid data
-    date, georef_params, angles, position = keep_valid(date, georef_params, angles, position, valid)
+    date, georef_params, angles, position = keep_valid(date, georef_params, angles, position, valid, outdir_cam_mvts)
 
     # interp extrinsic parameters of target images
     dates_interp, georef_params_interp = interp_targets_extrinsic(date, georef_params, f_cam_params)
@@ -427,3 +425,22 @@ def run(dir_h, dir_imgs, ref_img_fn, f_gcps, f_cam_params, dir_gcps, odir_cparam
                   dates_interp, angles_interp, position_interp,
                   angles_init, position_init,
                   outdir_cam_mvts)
+
+
+
+    # compute and save interpolated camera parameters
+
+    # Read initial camara_parameters file
+    with open(f_cam_params, 'r') as f:
+        cam_params = json.load(f)
+
+    for i in range(len(dates_interp)):
+        # compute extrinsic parameters from origin and beachcam angles
+        extr = ExtrinsicMatrix.from_origin_beachcam_angles([position_interp['x'][i], position_interp['y'][i], position_interp['z'][i]],
+                                                           [angles_interp['yaw'][i], angles_interp['pitch'][i], angles_interp['roll'][i]])
+
+        # save updated camera parameters, changing only extrinsic parameters
+        cam_params['extrinsic_parameters']['rvec'] = extr.rvec.reshape(-1).tolist()
+        cam_params['extrinsic_parameters']['tvec'] = extr.tvec.reshape(-1).tolist()
+        with open(odir_cparams_upd_smooth / f'camera_parameters_{dates_interp[i].strftime('%Y%m%d_%H_%M')}.json', 'w') as f:
+            json.dump(cam_params, f, indent=2)
