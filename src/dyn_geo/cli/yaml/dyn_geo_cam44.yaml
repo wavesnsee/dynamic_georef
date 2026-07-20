@@ -8,6 +8,7 @@ target_imgs:
 f_cam_params: '/home/florent/Projects/Etretat/Etretat_central2/info/cam_params_central2.json'
 matching: 'flann' # bfmatcher or flann
 outdir: '/home/florent/Projects/Etretat/Etretat_central2/test_stab_fm/stab_fm_out/'
-compute_fm: True
-plot_fm: True
-warp: True
+compute_fm: False
+plot_fm: False
+acc_metrics: False
+warp: False
