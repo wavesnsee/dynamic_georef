@@ -56,7 +56,6 @@ def plot_gcps_ref_target(gcps_uv, gcps_uv_warped, f_cam_params, target_img_fn, r
     return
 
 
-
 def compute_targets_extrinsic(dir_h, f_gcps, f_cam_params, target_imgs_dir, ref_img_fn, dir_gcps, outdir_cam_params_upd,
                               plot_gcps=False):
 
@@ -283,6 +282,19 @@ def despike_cam_mvts(position_ref, position, threshold_d=0.6):
 
     return valid
 
+
+def keep_valid(date, georef_params_upd, angles, position, valid):
+    date = np.array(date)[valid]
+    georef_params_upd = np.array(georef_params_upd)[valid]
+    angles['pitch'] = np.array(angles['pitch'])[valid]
+    angles['yaw'] = np.array(angles['yaw'])[valid]
+    angles['roll'] = np.array(angles['roll'])[valid]
+    position['x'] = np.array(position['x'])[valid]
+    position['y'] = np.array(position['y'])[valid]
+    position['z'] = np.array(position['z'])[valid]
+    return date, georef_params_upd, angles, position
+
+
 def plot_despiking(date, position, valid):
     plot_h = 250
     plot_w = 1800
@@ -402,14 +414,7 @@ def run(dir_h, dir_imgs, ref_img_fn, f_gcps, f_cam_params, dir_gcps, odir_cparam
     plot_despiking(date, position, valid)
 
     # keep only valid data
-    date = np.array(date)[valid]
-    georef_params_upd = np.array(georef_params_upd)[valid]
-    angles['pitch'] = np.array(angles['pitch'])[valid]
-    angles['yaw'] = np.array(angles['yaw'])[valid]
-    angles['roll'] = np.array(angles['roll'])[valid]
-    position['x'] = np.array(position['x'])[valid]
-    position['y'] = np.array(position['y'])[valid]
-    position['z'] = np.array(position['z'])[valid]
+    date, georef_params_upd, angles, position = keep_valid(date, georef_params_upd, angles, position, valid)
 
     # interp extrinsic parameters of target images
     dates_interp, georef_params_interp = interp_targets_extrinsic(date, georef_params_upd, f_cam_params)
@@ -417,7 +422,7 @@ def run(dir_h, dir_imgs, ref_img_fn, f_gcps, f_cam_params, dir_gcps, odir_cparam
     # compute camera movements interp
     angles_interp, position_interp = compute_cam_mvts(georef_params_interp)
 
-    # plot camera movements
+    # plot camera movements raw and interpolated
     plot_cam_mvts(date, angles, position,
                   dates_interp, angles_interp, position_interp,
                   angles_init, position_init,
