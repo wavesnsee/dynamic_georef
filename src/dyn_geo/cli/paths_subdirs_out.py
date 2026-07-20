@@ -1,7 +1,5 @@
-# config/paths_subdirs_out.py
 from dataclasses import dataclass, field
 from pathlib import Path
-import yaml
 
 
 @dataclass
