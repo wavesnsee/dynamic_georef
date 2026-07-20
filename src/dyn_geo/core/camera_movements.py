@@ -394,18 +394,18 @@ def plot_cam_mvts(date, angles, position, dates_interp, angles_interp, position_
     layout = column(global_title, grid)
     save(layout)
 
-def run(dir_h, dir_imgs, ref_img_fn, f_gcps, f_cam_params, dir_gcps, odir_cparams_upd, odir_cparams_upd_smooth,
+def run(dir_h, dir_imgs, ref_img_fn, f_gcps, f_cam_params, dir_gcps, odir_cparams, odir_cparams_upd_smooth,
         outdir_cam_mvts):
 
     # compute camera position of initial georef
     angles_init, position_init = compute_cam_mvts([Georef.from_param_file(f_cam_params)])
 
     # compute georef parameters for each target image
-    date, georef_params_upd = compute_targets_extrinsic(dir_h, f_gcps, f_cam_params, dir_imgs, ref_img_fn, dir_gcps,
-                                                  odir_cparams_upd)
+    date, georef_params = compute_targets_extrinsic(dir_h, f_gcps, f_cam_params, dir_imgs, ref_img_fn, dir_gcps,
+                                                        odir_cparams)
 
     # compute camera movements of each target image
-    angles, position = compute_cam_mvts(georef_params_upd)
+    angles, position = compute_cam_mvts(georef_params)
 
     # Despike camera movements
     valid = despike_cam_mvts(position_init, position)
@@ -414,10 +414,10 @@ def run(dir_h, dir_imgs, ref_img_fn, f_gcps, f_cam_params, dir_gcps, odir_cparam
     plot_despiking(date, position, valid)
 
     # keep only valid data
-    date, georef_params_upd, angles, position = keep_valid(date, georef_params_upd, angles, position, valid)
+    date, georef_params, angles, position = keep_valid(date, georef_params, angles, position, valid)
 
     # interp extrinsic parameters of target images
-    dates_interp, georef_params_interp = interp_targets_extrinsic(date, georef_params_upd, f_cam_params)
+    dates_interp, georef_params_interp = interp_targets_extrinsic(date, georef_params, f_cam_params)
 
     # compute camera movements interp
     angles_interp, position_interp = compute_cam_mvts(georef_params_interp)
