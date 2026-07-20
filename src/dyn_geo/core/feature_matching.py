@@ -61,7 +61,7 @@ def plot_src_and_dst_matches_mpl(src_pts, dst_pts, inlier_mask, im_ref, im, outd
     fig, ax = plt.subplots(1, 2, figsize=(22, 12), sharex=True, sharey=True, tight_layout=True)
     ax[0].set_title('Reference image')
     ax[0].imshow(im_ref)
-    ax[1].set_title('Image')
+    ax[1].set_title('Target image')
     ax[1].imshow(im)
     ax[0].plot(dst_pts[:, 0], dst_pts[:, 1], c='r', linewidth=0, markersize=6, marker='s')
     ax[0].plot(dst_pts[inlier_inds, 0], dst_pts[inlier_inds, 1], c='b', linewidth=0, markersize=6, marker='s')
