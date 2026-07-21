@@ -196,7 +196,7 @@ def interp_targets_tvec(georef_params_upd, dates, interp_dates):
 
 def interp_targets_extrinsic(dates, georef_params_upd, f_cam_params):
     '''
-    Interpolation of rotation vector to compute smoothed camera parameters
+    Interpolation of rotation and translation vectors to compute smoothed georef params
     '''
 
     # https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.transform.Slerp.html
@@ -392,10 +392,31 @@ def plot_cam_mvts(date, angles, position, dates_interp, angles_interp, position_
     layout = column(global_title, grid)
     save(layout)
 
-def run(dir_h, dir_imgs, ref_img_fn, f_gcps, f_cam_params, dir_gcps, odir_cparams, odir_cparams_upd_smooth,
-        outdir_cam_mvts):
+def save_interp_cam_params(f_cam_params, dates_interp, angles_interp, position_interp, odir_cparams_upd_smooth):
 
-    # compute camera position of initial georef
+    # Read initial camara_parameters file
+    with open(f_cam_params, 'r') as f:
+        cam_params = json.load(f)
+
+    for i in range(len(dates_interp)):
+
+        # compute extrinsic parameters from origin and beachcam angles
+        extr = ExtrinsicMatrix.from_origin_beachcam_angles([position_interp['x'][i], position_interp['y'][i], position_interp['z'][i]],
+                                                           [angles_interp['yaw'][i], angles_interp['pitch'][i], angles_interp['roll'][i]])
+
+        # save updated camera parameters, changing only extrinsic parameters
+        cam_params['extrinsic_parameters']['rvec'] = extr.rvec.reshape(-1).tolist()
+        cam_params['extrinsic_parameters']['tvec'] = extr.tvec.reshape(-1).tolist()
+        with open(odir_cparams_upd_smooth / f'camera_parameters_{dates_interp[i].strftime('%Y%m%d_%H_%M')}.json', 'w') as f:
+            json.dump(cam_params, f, indent=2)
+
+def plot_cam_mvts_3d():
+
+    return
+
+def run(dir_h, dir_imgs, ref_img_fn, f_gcps, f_cam_params, dir_gcps, odir_cparams, odir_cparams_smooth, odir_cam_mvts):
+
+    # compute camera position from initial georef
     angles_init, position_init = compute_cam_mvts([Georef.from_param_file(f_cam_params)])
 
     # compute georef parameters for each target image
@@ -409,10 +430,10 @@ def run(dir_h, dir_imgs, ref_img_fn, f_gcps, f_cam_params, dir_gcps, odir_cparam
     valid = despike_cam_mvts(position_init, position)
 
     # plot despiking
-    plot_despiking(date, position, valid, outdir_cam_mvts)
+    plot_despiking(date, position, valid, odir_cam_mvts)
 
     # keep only valid data
-    date, georef_params, angles, position = keep_valid(date, georef_params, angles, position, valid, outdir_cam_mvts)
+    date, georef_params, angles, position = keep_valid(date, georef_params, angles, position, valid, odir_cam_mvts)
 
     # interp extrinsic parameters of target images
     dates_interp, georef_params_interp = interp_targets_extrinsic(date, georef_params, f_cam_params)
@@ -424,23 +445,10 @@ def run(dir_h, dir_imgs, ref_img_fn, f_gcps, f_cam_params, dir_gcps, odir_cparam
     plot_cam_mvts(date, angles, position,
                   dates_interp, angles_interp, position_interp,
                   angles_init, position_init,
-                  outdir_cam_mvts)
-
-
+                  odir_cam_mvts)
 
     # compute and save interpolated camera parameters
+    save_interp_cam_params(f_cam_params, dates_interp, angles_interp, position_interp, odir_cparams_smooth)
 
-    # Read initial camara_parameters file
-    with open(f_cam_params, 'r') as f:
-        cam_params = json.load(f)
-
-    for i in range(len(dates_interp)):
-        # compute extrinsic parameters from origin and beachcam angles
-        extr = ExtrinsicMatrix.from_origin_beachcam_angles([position_interp['x'][i], position_interp['y'][i], position_interp['z'][i]],
-                                                           [angles_interp['yaw'][i], angles_interp['pitch'][i], angles_interp['roll'][i]])
-
-        # save updated camera parameters, changing only extrinsic parameters
-        cam_params['extrinsic_parameters']['rvec'] = extr.rvec.reshape(-1).tolist()
-        cam_params['extrinsic_parameters']['tvec'] = extr.tvec.reshape(-1).tolist()
-        with open(odir_cparams_upd_smooth / f'camera_parameters_{dates_interp[i].strftime('%Y%m%d_%H_%M')}.json', 'w') as f:
-            json.dump(cam_params, f, indent=2)
+    # Slider plot of 3D camera movements, and raw/projected images
+    plot_cam_mvts_3d(odir_cparams_smooth)
