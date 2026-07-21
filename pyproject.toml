@@ -12,6 +12,7 @@ dependencies = [
     "opencv-python-headless>=4.13.0.92",
     "pandas>=3.0.3",
     "pydantic>=2.13.4",
+    "pyqt5>=5.15.11",
     "pyturbojpeg==1.8.3",
     "pyyaml>=6.0.3",
     "roi-editor",
