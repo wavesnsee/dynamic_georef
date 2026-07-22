@@ -20,16 +20,17 @@ def read_jpeg(fname, pixel_format=tjpeg.TJPF_BGR) -> np.ndarray:
     if not is_jpeg(buffer=buffer):
         raise ValueError(f"JPEG File '{fname}' is corrupted")
     bgr = jpeg.decode(buffer, pixel_format)
-    return bgr
+
+    # convert from bgr to rgb
+    rgb = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
+
+    return rgb
 
 
 def read(f, f_cam_params):
 
     # read input img
     im = read_jpeg(f)
-
-    # convert from bgr to rgb
-    im = cv2.cvtColor(im, cv2.COLOR_BGR2RGB)
 
     # convert to gray
     im_gray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
