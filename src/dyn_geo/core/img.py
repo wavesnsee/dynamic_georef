@@ -2,14 +2,31 @@ import cv2
 import json
 from dateutil import parser
 import numpy as np
-import matplotlib.pyplot as plt
 from georef.operators import Georef
+import turbojpeg as tjpeg
+jpeg = tjpeg.TurboJPEG()
+
+
+def is_jpeg(buffer: bytes) -> bool:
+    """Check if last two bytes of the file buffer are equal to b'\xff\xd9'"""
+    return buffer[-2:] == b"\xff\xd9"
+
+
+def read_jpeg(fname, pixel_format=tjpeg.TJPF_BGR) -> np.ndarray:
+    fname = fname
+    with fname.open("rb") as fp:
+        buffer = fp.read()
+
+    if not is_jpeg(buffer=buffer):
+        raise ValueError(f"JPEG File '{fname}' is corrupted")
+    bgr = jpeg.decode(buffer, pixel_format)
+    return bgr
 
 
 def read(f, f_cam_params):
 
     # read input img
-    im = cv2.imread(f)
+    im = read_jpeg(f)
 
     # convert from bgr to rgb
     im = cv2.cvtColor(im, cv2.COLOR_BGR2RGB)
