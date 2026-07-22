@@ -19,6 +19,7 @@ dependencies = [
     "scikit-image>=0.26.0",
     "scikit-learn>=1.9.0",
     "scipy>=1.18.0",
+    "topo-an",
     "typer>=0.26.7",
 ]
 
@@ -29,6 +30,7 @@ build-backend = "uv_build"
 [tool.uv.sources]
 roi-editor = { git = "ssh://git@github.com/wavesnsee/roi_editor", rev = "main" }
 georef = { git = "ssh://git@github.com/wavesnsee/georef", rev = "main" }
+topo-an = { git = "ssh://git@github.com/wavesnsee/topo_analysis", rev = "main" }
 
 [project.scripts]
 dyn_geo = "dyn_geo.cli.app:app"
