@@ -25,6 +25,7 @@ class Paths:
         self.matches_data = self.matches / "data"
         self.acc_metrics = self.outdir / "acc_metrics"
         self.cam_mvts = self.outdir / "cam_mvts"
+        self.dir_lidar = self.cam_mvts / "lidar"
         self.cam_params_raw = self.outdir / "cam_params" / "raw"
         self.cam_params_smooth = self.outdir / "cam_params" / "smooth"
         self.h = self.outdir / "H"
@@ -34,7 +35,7 @@ class Paths:
 
     def create_all(self):
         """Create all directories"""
-        for path in [self.matches_plot, self.matches_data, self.h, self.acc_metrics, self.cam_mvts,
+        for path in [self.matches_plot, self.matches_data, self.h, self.acc_metrics, self.cam_mvts, self.dir_lidar,
                      self.cam_params_raw, self.cam_params_smooth, self.gcps, self.warped]:
             path.mkdir(parents=True, exist_ok=True)
         return self
