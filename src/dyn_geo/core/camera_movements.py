@@ -3,21 +3,26 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import cv2
+from pathlib import Path
 import io
 from copy import copy
 import json
 from georef.plot_tools import make_ref_frame, camera_3d_vecs
 from georef.operators import Georef, ExtrinsicMatrix
+from topo_an.core.topo import open_sporadic_topos, apply_roi_mask_to_sporadic_topos
+from topo_an.core.geo_utils import reproject_rasters
 
 from dyn_geo.core import img
+from rasterio.transform import from_bounds
 from scipy.spatial.transform import Rotation as R
 from scipy.spatial.transform import Slerp
 from scipy.interpolate import make_splprep
 from datetime import timedelta, datetime
 from bokeh.plotting import figure, save, output_file
-from bokeh.models import Range1d, RangeTool, ColumnDataSource, DatetimeTickFormatter
+from bokeh.models import Range1d, ColumnDataSource, Div, CustomJS, Slider, LinearColorMapper, ColorBar
 from bokeh.layouts import column, row, gridplot
-from bokeh.models import Div
+from bokeh.palettes import Viridis256
+from bokeh.transform import transform
 
 from dyn_geo.core.img import get_date
 
@@ -466,11 +471,21 @@ def save_interp_cam_params(f_cam_params, dates_interp, angles_interp, position_i
             json.dump(cam_params, f, indent=2)
 
 
-def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs):
+def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts):
+
+    f_lidar = Path('/home/florent/Projects/Etretat/lidarhd/LHD_FXX_0497_0498_6960_6961_LAMB93_IGN69.tif')
+    roi_lidar = '/home/florent/Projects/Etretat/lidarhd/roi_lidar_for_cam44_mvts.gpkg'
+
+    # read lidar data
+    lidar = open_sporadic_topos([f_lidar], '2154')
+
+    # apply roi mask to lidar topography
+    outdir_masked = odir_cam_mvts / 'lidar'
+    lidar = apply_roi_mask_to_sporadic_topos(lidar, roi_lidar, outdir_masked)[0]
 
     # initialize georef_params and date
     georef_params = []
-    date = []
+    t_cparams = []
 
     # list of json camera parameters
     ls_cparams = sorted(odir_cparams_smooth.glob('*.json'))
@@ -479,55 +494,144 @@ def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs):
     for f in ls_cparams:
         gp = Georef.from_param_file(f)
         georef_params.append(gp)
-        date.append(get_date(f))
+        t_cparams.append(get_date(f))
+
+    # change crs of lidar to crs of site if necessary
+    if lidar.crs.to_epsg() != georef_params[0].local_srs.horizontal_srs.auth_srid:
+        z, left, bottom, right, top = reproject_rasters([lidar],
+                                                        crs=georef_params[0].local_srs.horizontal_srs.auth_srid,
+                                                        flipud_bokeh=False)
+
+    tform = from_bounds(left, bottom, right, top, z[0].shape[1], z[0].shape[0])
+    x = tform.c + (np.arange(z[0].shape[1]) + 0.5) * tform.a
+    y = tform.f + (np.arange(z[0].shape[0]) + 0.5) * tform.e
+    X, Y = np.meshgrid(x, y)
+    # plt.pcolor(X, Y, z[0])
+    # plt.show()
+
+    # convert lidar points in local coordinate system
+    # df_3d_groyne_pts = pd.DataFrame.from_dict(groyne_pts)
+    # lidar_srs_local = (georef_params[0].local_srs.m_l_w @ df_3d_groyne_pts).T
+    pouet = np.vstack((X.ravel(), Y.ravel(), z[0].ravel())).T
+    lidar_srs_local = (georef_params[1].local_srs.m_l_w @ pouet).T
+    # plt.scatter(lidar_srs_local[:, 0], lidar_srs_local[:, 1], c=lidar_srs_local[:, 2], s=3)
+    # plt.show()
+    # lidar_srs_local = (georef_params[0].local_srs.m_l_w @ np.vstack((X.ravel(), Y.ravel(), z[0].ravel())).T).T
+
+
+    # get lidar u,v pts
+    uv, valid_pts = georef_params[1].geo2pix(lidar_srs_local[:, 0:3])
+
+    # fig, ax = plt.subplots()
+    # ax.scatter(uv[0, :], uv[1, :], c=z[0].ravel())
+    # ax.invert_yaxis()
+    # plt.show()
 
     # 3D camera plots
-    divs = plot_3d_vecs(georef_params)
+    cam_3d = plot_3d_vecs(georef_params)
 
-    # loop through target images
+    # Extract the SVG strings
+    svg_strings = [div.text for div in cam_3d]
+
+    # list of target images
     ls = sorted(dir_imgs.glob('*.jp*g'))
-    
-    # keep only the one close to dates of interp georef parameters
-    f_im = ls[0]
+    t_im = [img.get_date(f) for f in ls]
 
-    # read image
-    im = cv2.imread(f_im)
+    # keep only list elements whose date is close to the one of interp georef parameters
+    indices = [
+        min(range(len(t_im)), key=lambda i: abs(t_im[i] - d))
+        for d in t_cparams
+    ]
+    ls = [ls[i] for i in indices]
+    t_im = [t_im[i] for i in indices]
 
-    # rescale image
-    scale_percent = 20  # percent of original size
-    width = int(im.shape[1] * scale_percent / 100)
-    height = int(im.shape[0] * scale_percent / 100)
-    im = cv2.resize(im, (width, height))
+    # list of str dates
+    t_im = [t.strftime('%Y-%m-%d %H:%M') for t in t_im]
 
-    # flipud
-    im = np.flipud(im)
+    # get list of rgba images
+    rgba, width, height = img.ls_im_2rgba(ls, 100)
 
-    # convert to rgb and rgba
-    im_rgb = cv2.cvtColor(im, cv2.COLOR_BGR2RGB)
-    im_rgba = np.dstack([im_rgb, np.ones(im_rgb.shape[:2], dtype=np.uint8) * 255])
-    im_rgba = im_rgba.view(np.uint32).reshape(im_rgba.shape[:2])
-    p = figure(width=width, height=height, x_range=(0, im.shape[1]), y_range=(0, im.shape[0]))
-    p.image_rgba(image=[im_rgba], x=0, y=0, dw=im.shape[1], dh=im.shape[0])
-    # Hide ticks (major and minor)
-    p.xaxis.major_tick_line_color = None
-    p.xaxis.minor_tick_line_color = None
-    p.yaxis.major_tick_line_color = None
-    p.yaxis.minor_tick_line_color = None
-    # Also hide tick labels and axis line
-    p.xaxis.major_label_text_font_size = '0pt'  # Hide tick labels
-    p.yaxis.major_label_text_font_size = '0pt'
-    p.xaxis.axis_line_color = None  # Hide axis line
-    p.yaxis.axis_line_color = None
-    
-    layout = row(divs[0], p)
-    output_file('test5.html')
-    # save(divs[0])
+    # Left panel (single Div)
+    div = Div(
+        text=svg_strings[0],
+        width=400,
+        height=400,
+    )
+
+    # Right panel
+    source2 = ColumnDataSource(data=dict(image=[rgba[0]]))
+
+    p = figure(width=width, height=height, x_range=(0, width), y_range=(0, height), title=t_im[0])
+    p.image_rgba(
+        image="image",
+        source=source2,
+        x=0,
+        y=0,
+        dw=width,
+        dh=height,
+        alpha=0.5
+    )
+
+    source_lidar = ColumnDataSource(dict(x=uv[0, :][valid_pts], y=height - uv[1, :][valid_pts], z=z[0].ravel()[valid_pts]))
+    color_mapper = LinearColorMapper(
+        palette=Viridis256,
+        low=np.nanmin(z[0]),
+        high=np.nanmax(z[0]),
+    )
+    p.scatter(
+        "x",
+        "y",
+        source=source_lidar,
+        size=8,
+        color=transform("z", color_mapper)
+    )
+    color_bar = ColorBar(color_mapper=color_mapper)
+    p.add_layout(color_bar, "right")
+
+    slider = Slider(
+        start=0,
+        end=len(ls) - 1,
+        value=0,
+        step=1
+    )
+
+    callback = CustomJS(
+        args=dict(
+            div=div,
+            source=source2,
+            svgs=svg_strings,
+            imgs=rgba,
+            p=p,
+            t_im=t_im
+        ),
+        code="""
+            const i = cb_obj.value;
+
+            // Update SVG
+            div.text = svgs[i];
+
+            // Update image
+            source.data = {
+                image: [imgs[i]]
+            };
+
+            source.change.emit();
+            p.title.text = `${t_im[i]}`;
+        """,
+    )
+
+    slider.js_on_change("value", callback)
+
+    layout = column(
+        row(div, p),
+        slider,
+    )
+
+    output_file("slider_example.html")
     save(layout)
-    output_file('test6.html')
-    save(divs[1])
-
 
     return
+
 
 def run(dir_h, dir_imgs, ref_img_fn, f_gcps, f_cam_params, dir_gcps, odir_cparams, odir_cparams_smooth, odir_cam_mvts):
 
@@ -566,4 +670,4 @@ def run(dir_h, dir_imgs, ref_img_fn, f_gcps, f_cam_params, dir_gcps, odir_cparam
     # save_interp_cam_params(f_cam_params, dates_interp, angles_interp, position_interp, odir_cparams_smooth)
 
     # Slider plot of 3D camera movements, and raw/projected images
-    plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs)
+    plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts)
