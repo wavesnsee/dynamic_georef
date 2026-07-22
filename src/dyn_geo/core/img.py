@@ -47,6 +47,13 @@ def read(f, f_cam_params):
     return im, im_gray, h, w
 
 
+def rescale(im, scale_percent):
+    width = int(im.shape[1] * scale_percent / 100)
+    height = int(im.shape[0] * scale_percent / 100)
+    im = cv2.resize(im, (width, height))
+    return im, width, height
+
+
 def to_rgba(img, h, w):
     """Convert image array to RGBA uint32 for Bokeh image_rgba."""
     if img.ndim == 2:
@@ -139,3 +146,31 @@ def edges(gray):
         return fused
 
     return process_frame(gray)
+
+
+def ls_im_2rgba(ls, scale_percent):
+
+    # initialize output list of rgba images
+    rgba = []
+
+    # loop through images
+    for f in ls:
+
+        # read image
+        im = read_jpeg(f)
+
+        # rescale image
+        if scale_percent < 100:
+            im, width, height = rescale(im, scale_percent)
+        else:
+            (height, width, _) = np.shape(im)
+
+        # flipud
+        im = np.flipud(im)
+
+        # convert to rgba
+        im_rgba = to_rgba(im, height, width)
+
+        rgba.append(im_rgba)
+
+    return rgba, width, height
