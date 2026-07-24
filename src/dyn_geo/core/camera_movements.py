@@ -10,7 +10,7 @@ import json
 from georef.plot_tools import make_ref_frame, camera_3d_vecs
 from georef.operators import Georef, ExtrinsicMatrix
 from topo_an.core.topo import open_sporadic_topos, apply_roi_mask_to_sporadic_topos
-from topo_an.core.geo_utils import reproject_rasters
+from topo_an.core.geo_utils import reproject_rasters, raster_grid
 
 from dyn_geo.core import img
 from rasterio.transform import from_bounds
@@ -479,11 +479,7 @@ def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts, scaling_perce
         z, left, bottom, right, top = reproject_rasters([lidar],
                                                         crs=georef_params[0].local_srs.horizontal_srs.auth_srid,
                                                         flipud_bokeh=False)
-
-    tform = from_bounds(left, bottom, right, top, z[0].shape[1], z[0].shape[0])
-    x = tform.c + (np.arange(z[0].shape[1]) + 0.5) * tform.a
-    y = tform.f + (np.arange(z[0].shape[0]) + 0.5) * tform.e
-    X, Y = np.meshgrid(x, y)
+    X, Y = raster_grid(lidar, georef_params[0].local_srs.horizontal_srs.auth_srid)
 
     # convert lidar points in local coordinate system
     xyz = np.vstack((X.ravel(), Y.ravel(), z[0].ravel())).T
