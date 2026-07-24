@@ -9,11 +9,9 @@ from copy import copy
 import json
 from georef.plot_tools import make_ref_frame, camera_3d_vecs
 from georef.operators import Georef, ExtrinsicMatrix
-from topo_an.core.topo import open_sporadic_topos, apply_roi_mask_to_sporadic_topos
-from topo_an.core.geo_utils import reproject_rasters, raster_grid
+
 
 from dyn_geo.core import img
-from rasterio.transform import from_bounds
 from scipy.spatial.transform import Rotation as R
 from scipy.spatial.transform import Slerp
 from scipy.interpolate import make_splprep
@@ -25,6 +23,7 @@ from bokeh.palettes import Viridis256
 from bokeh.transform import transform
 
 from dyn_geo.core.img import get_date
+from dyn_geo.core.lidar import get_lidar_uv
 
 
 def plot_gcps_ref_target(gcps_uv, gcps_uv_warped, f_cam_params, target_img_fn, ref_img_fn, dir_gcps):
@@ -465,29 +464,12 @@ def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts, scaling_perce
         georef_params.append(gp)
         t_cparams.append(get_date(f))
 
-    # read lidar data
+    # list of uv lidar
     f_lidar = Path('/home/florent/Projects/Etretat/lidarhd/LHD_FXX_0497_0498_6960_6961_LAMB93_IGN69.tif')
-    roi_lidar = '/home/florent/Projects/Etretat/lidarhd/roi_lidar_for_cam44_mvts.gpkg'
-    lidar = open_sporadic_topos([f_lidar], '2154')
-
-    # apply roi mask to lidar topography
-    outdir_masked = odir_cam_mvts / 'lidar'
-    lidar = apply_roi_mask_to_sporadic_topos(lidar, roi_lidar, outdir_masked)[0]
-
-    # change crs of lidar to crs of site if necessary
-    if lidar.crs.to_epsg() != georef_params[0].local_srs.horizontal_srs.auth_srid:
-        z, left, bottom, right, top = reproject_rasters([lidar],
-                                                        crs=georef_params[0].local_srs.horizontal_srs.auth_srid,
-                                                        flipud_bokeh=False)
-    X, Y = raster_grid(lidar, georef_params[0].local_srs.horizontal_srs.auth_srid)
-
-    # convert lidar points in local coordinate system
-    xyz = np.vstack((X.ravel(), Y.ravel(), z[0].ravel())).T
-    lidar_srs_local = (georef_params[1].local_srs.m_l_w @ xyz).T
-
-    # get lidar u,v pts
-    uv, valid_pts = georef_params[1].geo2pix(lidar_srs_local[:, 0:3])
-    uv = uv * scaling_percent / 100
+    roi_lidar = Path('/home/florent/Projects/Etretat/lidarhd/roi_lidar_for_cam44_mvts.gpkg')
+    uv, valid_pts, z = get_lidar_uv(f_lidar, roi_lidar, odir_cam_mvts, georef_params, scaling_percent)
+    uv = uv[1]
+    valid_pts = valid_pts[1]
 
     # 3D camera plots
     svg_strings_c3d = plot_3d_vecs(georef_params)
@@ -530,11 +512,11 @@ def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts, scaling_perce
         dh=height
     )
 
-    source_lidar = ColumnDataSource(dict(x=uv[0, :][valid_pts], y=height - uv[1, :][valid_pts], z=z[0].ravel()[valid_pts]))
+    source_lidar = ColumnDataSource(dict(x=uv[0, :][valid_pts], y=height - uv[1, :][valid_pts], z=z.ravel()[valid_pts]))
     color_mapper = LinearColorMapper(
         palette=Viridis256,
-        low=np.nanmin(z[0]),
-        high=np.nanmax(z[0]),
+        low=np.nanmin(z),
+        high=np.nanmax(z),
     )
     p.scatter(
         "x",
