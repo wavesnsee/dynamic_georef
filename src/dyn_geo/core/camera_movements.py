@@ -450,17 +450,7 @@ def save_interp_cam_params(f_cam_params, dates_interp, angles_interp, position_i
             json.dump(cam_params, f, indent=2)
 
 
-def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts):
-
-    f_lidar = Path('/home/florent/Projects/Etretat/lidarhd/LHD_FXX_0497_0498_6960_6961_LAMB93_IGN69.tif')
-    roi_lidar = '/home/florent/Projects/Etretat/lidarhd/roi_lidar_for_cam44_mvts.gpkg'
-
-    # read lidar data
-    lidar = open_sporadic_topos([f_lidar], '2154')
-
-    # apply roi mask to lidar topography
-    outdir_masked = odir_cam_mvts / 'lidar'
-    lidar = apply_roi_mask_to_sporadic_topos(lidar, roi_lidar, outdir_masked)[0]
+def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts, scaling_percent=20):
 
     # initialize georef_params and date
     georef_params = []
@@ -474,6 +464,15 @@ def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts):
         gp = Georef.from_param_file(f)
         georef_params.append(gp)
         t_cparams.append(get_date(f))
+
+    # read lidar data
+    f_lidar = Path('/home/florent/Projects/Etretat/lidarhd/LHD_FXX_0497_0498_6960_6961_LAMB93_IGN69.tif')
+    roi_lidar = '/home/florent/Projects/Etretat/lidarhd/roi_lidar_for_cam44_mvts.gpkg'
+    lidar = open_sporadic_topos([f_lidar], '2154')
+
+    # apply roi mask to lidar topography
+    outdir_masked = odir_cam_mvts / 'lidar'
+    lidar = apply_roi_mask_to_sporadic_topos(lidar, roi_lidar, outdir_masked)[0]
 
     # change crs of lidar to crs of site if necessary
     if lidar.crs.to_epsg() != georef_params[0].local_srs.horizontal_srs.auth_srid:
@@ -492,6 +491,7 @@ def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts):
 
     # get lidar u,v pts
     uv, valid_pts = georef_params[1].geo2pix(lidar_srs_local[:, 0:3])
+    uv = uv * scaling_percent / 100
 
     # 3D camera plots
     svg_strings_c3d = plot_3d_vecs(georef_params)
@@ -508,11 +508,11 @@ def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts):
     ls = [ls[i] for i in indices]
     t_im = [t_im[i] for i in indices]
 
-    # list of str dates
+    # list of im dates
     t_im = [t.strftime('%Y-%m-%d %H:%M') for t in t_im]
 
-    # get list of rgba images
-    rgba, width, height = img.ls_im_2rgba(ls, 100)
+    # get list of rgba ims
+    rgba, width, height = img.ls_im_2rgba(ls, scaling_percent)
 
     # Left panel (single Div)
     div = Div(
@@ -544,7 +544,7 @@ def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts):
         "x",
         "y",
         source=source_lidar,
-        size=8,
+        size=3,
         color=transform("z", color_mapper)
     )
     color_bar = ColorBar(color_mapper=color_mapper)
