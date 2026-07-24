@@ -23,7 +23,7 @@ from bokeh.palettes import Viridis256
 from bokeh.transform import transform
 
 from dyn_geo.core.img import get_date
-from dyn_geo.core.lidar import get_lidar_uv
+from dyn_geo.core.lidar import lidar_geo2pix
 
 
 def plot_gcps_ref_target(gcps_uv, gcps_uv_warped, f_cam_params, target_img_fn, ref_img_fn, dir_gcps):
@@ -449,7 +449,38 @@ def save_interp_cam_params(f_cam_params, dates_interp, angles_interp, position_i
             json.dump(cam_params, f, indent=2)
 
 
-def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts, scaling_percent=20):
+def gcps_geo_2pix(f_gcps, georef_params, scaling_percent):
+
+    # read gcps file
+    df = pd.read_csv(f_gcps)
+
+    # compute gcps geo coordinates in local srs
+    gcps_xyz = df[['easting', 'northing', 'elevation']].to_numpy().T
+    gcps_xyz = (georef_params[0].local_srs.m_l_w @ gcps_xyz).T[:, 0:3]
+    # plt.plot(gcps_xyz[:, 0], gcps_xyz[:, 1], '+b')
+    # plt.show()
+
+    # initialize output variables
+    u = []
+    v = []
+    z = []
+
+    # loop through georef parameters
+    for i in range(len(georef_params)):
+
+        # get gcps uv coordinates gor each georef parameter
+        uv, valid_pts = georef_params[i].geo2pix(gcps_xyz[:, 0:3])
+
+        # adapt uv to scaling factor
+        uv = uv * scaling_percent / 100
+
+        u.append(uv[0][valid_pts])
+        v.append(uv[1][valid_pts])
+        z.append(gcps_xyz[:, 2][valid_pts])
+
+    return u, v, z
+
+def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts, f_gcps, scaling_percent=20):
 
     # initialize georef_params and date
     georef_params = []
@@ -467,7 +498,10 @@ def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts, scaling_perce
     # list of uv lidar
     f_lidar = Path('/home/florent/Projects/Etretat/lidarhd/LHD_FXX_0497_0498_6960_6961_LAMB93_IGN69.tif')
     roi_lidar = Path('/home/florent/Projects/Etretat/lidarhd/roi_lidar_for_cam44_mvts.gpkg')
-    u, v, z = get_lidar_uv(f_lidar, roi_lidar, odir_cam_mvts, georef_params, scaling_percent)
+    u, v, z = lidar_geo2pix(f_lidar, roi_lidar, odir_cam_mvts, georef_params, scaling_percent)
+
+    # list of uv gcps
+    u_gcps, v_gcps, z_gcps = gcps_geo_2pix(f_gcps, georef_params, scaling_percent)
 
     # 3D camera plots
     svg_strings_c3d = plot_3d_vecs(georef_params)
@@ -492,6 +526,7 @@ def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts, scaling_perce
 
     # pre-compute flipped v-coordinates for lidar display (Bokeh y-axis is top-down)
     v_flipped = [height - v[i] for i in range(len(v))]
+    v_flipped_gcps = [height - v_gcps[i] for i in range(len(v_gcps))]
 
     # Left panel (single Div)
     div = Div(
@@ -514,6 +549,8 @@ def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts, scaling_perce
     )
 
     source_lidar = ColumnDataSource(data=dict(x=u[0], y=v_flipped[0], z=z[0]))
+    source_gcps = ColumnDataSource(data=dict(x=u_gcps[0], y=v_flipped_gcps[0], z=z_gcps[0]))
+
     color_mapper = LinearColorMapper(
         palette=Viridis256,
         low=np.nanmin(z[0]),
@@ -524,10 +561,21 @@ def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts, scaling_perce
         "y",
         source=source_lidar,
         size=3,
-        color=transform("z", color_mapper)
+        color=transform("z", color_mapper),
+        legend_label="lidar"
+    )
+    p.scatter(
+        "x",
+        "y",
+        source=source_gcps,
+        size=3,
+        color=transform("z", color_mapper),
+        legend_label="gcps"
     )
     color_bar = ColorBar(color_mapper=color_mapper)
     p.add_layout(color_bar, "right")
+    p.legend.click_policy = "hide"  # click a legend entry to toggle that series
+    p.legend.location = "top_left"
 
     slider = Slider(
         start=0,
@@ -541,11 +589,15 @@ def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts, scaling_perce
             div=div,
             source_im=source_im,
             source_lidar=source_lidar,
+            source_gcps=source_gcps,
             svgs=svg_strings_c3d,
             imgs=rgba,
             u=u,
             v_flipped=v_flipped,
             z=z,
+            u_gcps=u_gcps,
+            v_flipped_gcps=v_flipped_gcps,
+            z_gcps=z_gcps,
             p=p,
             t_im=t_im
         ),
@@ -565,6 +617,13 @@ def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts, scaling_perce
                 x: u[i],
                 y: v_flipped[i],
                 z: z[i]
+            };
+            
+            // Update scatter gcps
+            source_gcps.data = {
+                x: u_gcps[i],
+                y: v_flipped_gcps[i],
+                z: z_gcps[i]
             };
 
             source_lidar.change.emit();
@@ -622,4 +681,4 @@ def run(dir_h, dir_imgs, ref_img_fn, f_gcps, f_cam_params, dir_gcps, odir_cparam
     # save_interp_cam_params(f_cam_params, dates_interp, angles_interp, position_interp, odir_cparams_smooth)
 
     # Slider plot of 3D camera movements, and raw/projected images
-    plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts)
+    plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts, f_gcps)
