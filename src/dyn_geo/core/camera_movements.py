@@ -579,6 +579,24 @@ def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts, f_gcps, scali
     p.legend.click_policy = "hide"  # click a legend entry to toggle that series
     p.legend.location = "top_left"
 
+    # project images
+    imgs_proj = project_ls_im(ls, georef_params)
+    # height, width
+    w = imgs_proj[0].shape[1]
+    h = imgs_proj[0].shape[0]
+    # convert to rgba
+    imgs_proj = [img.to_rgba(im, h, w) for im in imgs_proj]
+    p2 = figure(width=400, height=400, x_range=(0, width), y_range=(0, height), title='projected images')
+    source_im_proj = ColumnDataSource(data=dict(image=[imgs_proj[0]]))
+    p2.image_rgba(
+        image="image",
+        source=source_im_proj,
+        x=0,
+        y=0,
+        dw=width,
+        dh=height
+    )
+
     slider = Slider(
         start=0,
         end=len(ls) - 1,
@@ -590,6 +608,7 @@ def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts, f_gcps, scali
         args=dict(
             div=div,
             source_im=source_im,
+            source_im_proj=source_im_proj,
             source_lidar=source_lidar,
             source_gcps=source_gcps,
             svgs=svg_strings_c3d,
@@ -600,6 +619,7 @@ def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts, f_gcps, scali
             u_gcps=u_gcps,
             v_flipped_gcps=v_flipped_gcps,
             z_gcps=z_gcps,
+            imgs_proj=imgs_proj,
             p=p,
             t_im=t_im
         ),
@@ -627,25 +647,17 @@ def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts, f_gcps, scali
                 y: v_flipped_gcps[i],
                 z: z_gcps[i]
             };
+            
+            // Update image
+            source_im_proj.data = {
+                image: [imgs_proj[i]]
+            };
 
             source_lidar.change.emit();
             p.title.text = `${t_im[i]}`;
         """,
     )
-    # project images
-    imgs_proj = project_ls_im(ls, georef_params)
-    w = imgs_proj[0].shape[1]
-    h = imgs_proj[0].shape[0]
-    p2 = figure(width=500, height=500, x_range=(0, width), y_range=(0, height), title='projected images')
-    source_im_proj = ColumnDataSource(data=dict(image=[img.to_rgba(imgs_proj[0], h, w)]))
-    p2.image_rgba(
-        image="image",
-        source=source_im_proj,
-        x=0,
-        y=0,
-        dw=width,
-        dh=height
-    )
+
 
     slider.js_on_change("value", callback)
 
