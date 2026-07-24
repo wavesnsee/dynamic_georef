@@ -148,7 +148,7 @@ def edges(gray):
     return process_frame(gray)
 
 
-def ls_im_2rgba(ls, scale_percent):
+def ls_im_2rgba(ls, scale_percent, bokeh_compatible=True):
 
     # initialize output list of rgba images
     rgba = []
@@ -165,12 +165,14 @@ def ls_im_2rgba(ls, scale_percent):
         else:
             (height, width, _) = np.shape(im)
 
-        # flipud
-        im = np.flipud(im)
+        if bokeh_compatible:
+            # flipud
+            im = np.flipud(im)
 
-        # convert to rgba
-        im_rgba = to_rgba(im, height, width)
-
-        rgba.append(im_rgba)
+            # convert to rgba
+            im_rgba = to_rgba(im, height, width)
+            rgba.append(im_rgba)
+        else:
+            rgba.append(im)
 
     return rgba, width, height
