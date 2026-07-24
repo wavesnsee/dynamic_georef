@@ -324,7 +324,8 @@ def plot_despiking(date, position, valid, outdir_cam_mvts):
 
 def plot_3d_vecs(georef_params, colors=['k', 'b'], axis_names=["x", "y", "z"], title=""):
 
-    divs = []
+    # divs = []
+    svg_strings = []
 
     # Make reference frame ready for plot (Ox, Oy, Oz)
     unit_vectors = make_ref_frame()
@@ -363,12 +364,9 @@ def plot_3d_vecs(georef_params, colors=['k', 'b'], axis_names=["x", "y", "z"], t
         fig.savefig(buf, format='svg')
         plt.close(fig)
         svg_string = buf.getvalue().decode('utf-8')
+        svg_strings.append(svg_string)
 
-        # Embed the raw SVG markup directly in a Div
-        div = Div(text=svg_string, width=400, height=400)
-        divs.append(div)
-
-    return divs
+    return svg_strings
 
 
 def plot_cam_mvts(date, angles, position, dates_interp, angles_interp, position_interp,
@@ -491,22 +489,12 @@ def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts):
     # convert lidar points in local coordinate system
     xyz = np.vstack((X.ravel(), Y.ravel(), z[0].ravel())).T
     lidar_srs_local = (georef_params[1].local_srs.m_l_w @ xyz).T
-    # plt.scatter(lidar_srs_local[:, 0], lidar_srs_local[:, 1], c=lidar_srs_local[:, 2], s=3)
-    # plt.show()
-    # lidar_srs_local = (georef_params[0].local_srs.m_l_w @ np.vstack((X.ravel(), Y.ravel(), z[0].ravel())).T).T
 
     # get lidar u,v pts
     uv, valid_pts = georef_params[1].geo2pix(lidar_srs_local[:, 0:3])
 
-    # fig, ax = plt.subplots()
-    # ax.scatter(uv[0, :], uv[1, :], c=z[0].ravel())
-    # ax.invert_yaxis()
-    # plt.show()
-
     # 3D camera plots
-    cam_3d = plot_3d_vecs(georef_params)
-    # Extract the SVG strings
-    svg_strings = [div.text for div in cam_3d]
+    svg_strings_c3d = plot_3d_vecs(georef_params)
 
     # list of target images
     ls = sorted(dir_imgs.glob('*.jp*g'))
@@ -528,7 +516,7 @@ def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts):
 
     # Left panel (single Div)
     div = Div(
-        text=svg_strings[0],
+        text=svg_strings_c3d[0],
         width=400,
         height=400,
     )
@@ -573,7 +561,7 @@ def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts):
         args=dict(
             div=div,
             source=source2,
-            svgs=svg_strings,
+            svgs=svg_strings_c3d,
             imgs=rgba,
             p=p,
             t_im=t_im
@@ -610,38 +598,38 @@ def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts):
 def run(dir_h, dir_imgs, ref_img_fn, f_gcps, f_cam_params, dir_gcps, odir_cparams, odir_cparams_smooth, odir_cam_mvts):
 
     # compute camera position from initial georef
-    angles_init, position_init = compute_cam_mvts([Georef.from_param_file(f_cam_params)])
-
-    # compute georef parameters for each target image
-    date, georef_params = compute_targets_extrinsic(dir_h, f_gcps, f_cam_params, dir_imgs, ref_img_fn, dir_gcps,
-                                                        odir_cparams)
-
-    # compute camera movements of each target image
-    angles, position = compute_cam_mvts(georef_params)
-
-    # Despike camera movements
-    valid = despike_cam_mvts(position_init, position)
-
-    # plot despiking
-    plot_despiking(date, position, valid, odir_cam_mvts)
-
-    # keep only valid data
-    date, georef_params, angles, position = keep_valid(date, georef_params, angles, position, valid, odir_cam_mvts)
-
-    # interp extrinsic parameters of target images
-    dates_interp, georef_params_interp = interp_targets_extrinsic(date, georef_params, f_cam_params)
-
-    # compute camera movements interp
-    angles_interp, position_interp = compute_cam_mvts(georef_params_interp)
-
-    # plot camera movements raw and interpolated
-    plot_cam_mvts(date, angles, position,
-                  dates_interp, angles_interp, position_interp,
-                  angles_init, position_init,
-                  odir_cam_mvts)
-
-    # compute and save interpolated camera parameters
-    save_interp_cam_params(f_cam_params, dates_interp, angles_interp, position_interp, odir_cparams_smooth)
+    # angles_init, position_init = compute_cam_mvts([Georef.from_param_file(f_cam_params)])
+    #
+    # # compute georef parameters for each target image
+    # date, georef_params = compute_targets_extrinsic(dir_h, f_gcps, f_cam_params, dir_imgs, ref_img_fn, dir_gcps,
+    #                                                     odir_cparams)
+    #
+    # # compute camera movements of each target image
+    # angles, position = compute_cam_mvts(georef_params)
+    #
+    # # Despike camera movements
+    # valid = despike_cam_mvts(position_init, position)
+    #
+    # # plot despiking
+    # plot_despiking(date, position, valid, odir_cam_mvts)
+    #
+    # # keep only valid data
+    # date, georef_params, angles, position = keep_valid(date, georef_params, angles, position, valid, odir_cam_mvts)
+    #
+    # # interp extrinsic parameters of target images
+    # dates_interp, georef_params_interp = interp_targets_extrinsic(date, georef_params, f_cam_params)
+    #
+    # # compute camera movements interp
+    # angles_interp, position_interp = compute_cam_mvts(georef_params_interp)
+    #
+    # # plot camera movements raw and interpolated
+    # plot_cam_mvts(date, angles, position,
+    #               dates_interp, angles_interp, position_interp,
+    #               angles_init, position_init,
+    #               odir_cam_mvts)
+    #
+    # # compute and save interpolated camera parameters
+    # save_interp_cam_params(f_cam_params, dates_interp, angles_interp, position_interp, odir_cparams_smooth)
 
     # Slider plot of 3D camera movements, and raw/projected images
     plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts)
