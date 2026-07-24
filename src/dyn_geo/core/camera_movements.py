@@ -27,16 +27,6 @@ from bokeh.transform import transform
 from dyn_geo.core.img import get_date
 
 
-def rotate_vector(data, theta):
-    # make rotation matrix
-    co = np.cos(theta)
-    si = np.sin(theta)
-    rotation_matrix = np.array(((co, -si), (si, co)))
-
-    # rotate data vector
-    return data.dot(rotation_matrix)
-
-
 def plot_gcps_ref_target(gcps_uv, gcps_uv_warped, f_cam_params, target_img_fn, ref_img_fn, dir_gcps):
 
     # read reference image
@@ -67,12 +57,12 @@ def plot_gcps_ref_target(gcps_uv, gcps_uv_warped, f_cam_params, target_img_fn, r
 
 
 def compute_targets_extrinsic(dir_h, f_gcps, f_cam_params, target_imgs_dir, ref_img_fn, dir_gcps, outdir_cam_params_upd,
-                              plot_gcps=False):
+                              plot_gcps=True):
 
     # list of homography matrixes
     ls_h = sorted(dir_h.glob('*.npy'))
 
-    # Read initial camara_parameters file
+    # Read initial camera parameters file
     with open(f_cam_params, 'r') as f:
         cam_params = json.load(f)
 
@@ -91,21 +81,12 @@ def compute_targets_extrinsic(dir_h, f_gcps, f_cam_params, target_imgs_dir, ref_
     # extract gcps pixel coordinates
     gcps_uv = df[['U', 'V']].to_numpy()
 
-    # extract gcps geo coordinates
-    gcps_xy = df[['easting', 'northing']].to_numpy()
-    gcps_xyz = df[['easting', 'northing', 'elevation']].to_numpy()
+    # compute gcps geo coordinates in local srs
+    gcps_xyz = df[['easting', 'northing', 'elevation']].to_numpy().T
+    gcps_xyz = (georef_params.local_srs.m_l_w @ gcps_xyz).T[:, 0:3]
 
-    # applying rotation to the local system
-    data = np.stack((gcps_xy[:, 0] - georef_params.local_srs.offset_easting,
-                     gcps_xy[:, 1] - georef_params.local_srs.offset_northing)).T
-    rotated_data = rotate_vector(data, georef_params.local_srs.rotation)
-
-    gcps_xyz[:, 0] = rotated_data[:, 0]
-    gcps_xyz[:, 1] = rotated_data[:, 1]
-    gcps_xyz = gcps_xyz.astype(np.float32)
-
+    # reshape gcps_xyz to make it compatible with solvePnPRansac
     gcps_xyz = gcps_xyz.reshape(gcps_xyz.shape[0], 1, gcps_xyz.shape[1])
-
 
     # loop through homographies
     for i, f_h in enumerate(ls_h):
@@ -506,18 +487,13 @@ def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts):
     x = tform.c + (np.arange(z[0].shape[1]) + 0.5) * tform.a
     y = tform.f + (np.arange(z[0].shape[0]) + 0.5) * tform.e
     X, Y = np.meshgrid(x, y)
-    # plt.pcolor(X, Y, z[0])
-    # plt.show()
 
     # convert lidar points in local coordinate system
-    # df_3d_groyne_pts = pd.DataFrame.from_dict(groyne_pts)
-    # lidar_srs_local = (georef_params[0].local_srs.m_l_w @ df_3d_groyne_pts).T
-    pouet = np.vstack((X.ravel(), Y.ravel(), z[0].ravel())).T
-    lidar_srs_local = (georef_params[1].local_srs.m_l_w @ pouet).T
+    xyz = np.vstack((X.ravel(), Y.ravel(), z[0].ravel())).T
+    lidar_srs_local = (georef_params[1].local_srs.m_l_w @ xyz).T
     # plt.scatter(lidar_srs_local[:, 0], lidar_srs_local[:, 1], c=lidar_srs_local[:, 2], s=3)
     # plt.show()
     # lidar_srs_local = (georef_params[0].local_srs.m_l_w @ np.vstack((X.ravel(), Y.ravel(), z[0].ravel())).T).T
-
 
     # get lidar u,v pts
     uv, valid_pts = georef_params[1].geo2pix(lidar_srs_local[:, 0:3])
@@ -529,7 +505,6 @@ def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts):
 
     # 3D camera plots
     cam_3d = plot_3d_vecs(georef_params)
-
     # Extract the SVG strings
     svg_strings = [div.text for div in cam_3d]
 
@@ -568,8 +543,7 @@ def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts):
         x=0,
         y=0,
         dw=width,
-        dh=height,
-        alpha=0.5
+        dh=height
     )
 
     source_lidar = ColumnDataSource(dict(x=uv[0, :][valid_pts], y=height - uv[1, :][valid_pts], z=z[0].ravel()[valid_pts]))
@@ -636,38 +610,38 @@ def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts):
 def run(dir_h, dir_imgs, ref_img_fn, f_gcps, f_cam_params, dir_gcps, odir_cparams, odir_cparams_smooth, odir_cam_mvts):
 
     # compute camera position from initial georef
-    # angles_init, position_init = compute_cam_mvts([Georef.from_param_file(f_cam_params)])
-    #
-    # # compute georef parameters for each target image
-    # date, georef_params = compute_targets_extrinsic(dir_h, f_gcps, f_cam_params, dir_imgs, ref_img_fn, dir_gcps,
-    #                                                     odir_cparams)
-    #
-    # # compute camera movements of each target image
-    # angles, position = compute_cam_mvts(georef_params)
-    #
-    # # Despike camera movements
-    # valid = despike_cam_mvts(position_init, position)
-    #
-    # # plot despiking
-    # plot_despiking(date, position, valid, odir_cam_mvts)
-    #
-    # # keep only valid data
-    # date, georef_params, angles, position = keep_valid(date, georef_params, angles, position, valid, odir_cam_mvts)
-    #
-    # # interp extrinsic parameters of target images
-    # dates_interp, georef_params_interp = interp_targets_extrinsic(date, georef_params, f_cam_params)
-    #
-    # # compute camera movements interp
-    # angles_interp, position_interp = compute_cam_mvts(georef_params_interp)
-    #
-    # # plot camera movements raw and interpolated
-    # plot_cam_mvts(date, angles, position,
-    #               dates_interp, angles_interp, position_interp,
-    #               angles_init, position_init,
-    #               odir_cam_mvts)
-    #
-    # # compute and save interpolated camera parameters
-    # save_interp_cam_params(f_cam_params, dates_interp, angles_interp, position_interp, odir_cparams_smooth)
+    angles_init, position_init = compute_cam_mvts([Georef.from_param_file(f_cam_params)])
+
+    # compute georef parameters for each target image
+    date, georef_params = compute_targets_extrinsic(dir_h, f_gcps, f_cam_params, dir_imgs, ref_img_fn, dir_gcps,
+                                                        odir_cparams)
+
+    # compute camera movements of each target image
+    angles, position = compute_cam_mvts(georef_params)
+
+    # Despike camera movements
+    valid = despike_cam_mvts(position_init, position)
+
+    # plot despiking
+    plot_despiking(date, position, valid, odir_cam_mvts)
+
+    # keep only valid data
+    date, georef_params, angles, position = keep_valid(date, georef_params, angles, position, valid, odir_cam_mvts)
+
+    # interp extrinsic parameters of target images
+    dates_interp, georef_params_interp = interp_targets_extrinsic(date, georef_params, f_cam_params)
+
+    # compute camera movements interp
+    angles_interp, position_interp = compute_cam_mvts(georef_params_interp)
+
+    # plot camera movements raw and interpolated
+    plot_cam_mvts(date, angles, position,
+                  dates_interp, angles_interp, position_interp,
+                  angles_init, position_init,
+                  odir_cam_mvts)
+
+    # compute and save interpolated camera parameters
+    save_interp_cam_params(f_cam_params, dates_interp, angles_interp, position_interp, odir_cparams_smooth)
 
     # Slider plot of 3D camera movements, and raw/projected images
     plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts)
