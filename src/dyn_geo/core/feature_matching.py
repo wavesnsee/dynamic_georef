@@ -92,8 +92,8 @@ def plot_src_and_dst_matches(src_pts, dst_pts, inlier_mask, im_ref, im, outdir_m
     inlier_inds = np.where(inlier_mask)
 
     # Bokeh  expects image origin at bottom-left, so flip vertically
-    im_ref = np.flipud(im_ref)
-    im = np.flipud(im)
+    # im_ref = np.flipud(im_ref)
+    # im = np.flipud(im)
 
     # Flip y-coordinates to match Bokeh's bottom-left origin
     dst_pts[:, 1] = h - dst_pts[:, 1]
