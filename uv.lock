@@ -1265,7 +1265,7 @@ wheels = [
 [[package]]
 name = "topo-an"
 version = "0.1.0"
-source = { git = "ssh://git@github.com/wavesnsee/topo_analysis?rev=main#2589710003d34477f0a238b10b45c0092bab0e5e" }
+source = { git = "ssh://git@github.com/wavesnsee/topo_analysis?rev=main#a21b57dc386e8728666a6497006c23871eca9f58" }
 dependencies = [
     { name = "bokeh" },
     { name = "geopandas" },
