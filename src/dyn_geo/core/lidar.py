@@ -33,8 +33,8 @@ def lidar_2_local(f_lidar: Path, roi_lidar: Path, odir_cam_mvts:Path, georef_par
     return z, lidar_srs_local
 
 
-def get_lidar_uv(f_lidar: Path, roi_lidar: Path, odir_cam_mvts:Path, georef_params: List[georef.operators.Georef],
-                 scaling_percent: int):
+def lidar_geo2pix(f_lidar: Path, roi_lidar: Path, odir_cam_mvts:Path, georef_params: List[georef.operators.Georef],
+                  scaling_percent: int):
 
     # get lidar geo data expressed in the local reference system
     z, lidar_srs_local = lidar_2_local(f_lidar, roi_lidar, odir_cam_mvts, georef_params)
@@ -54,12 +54,10 @@ def get_lidar_uv(f_lidar: Path, roi_lidar: Path, odir_cam_mvts:Path, georef_para
         # adapt uv to scaling factor
         uv = uv * scaling_percent / 100
 
-        u_lidar.append(uv[0])
-        v_lidar.append(uv[1])
+        u_lidar.append(uv[0][valid_pts])
+        v_lidar.append(uv[1][valid_pts])
         valid_points.append(valid_pts)
 
-    u_lidar = [u_lidar[i][valid_points[i]] for i in range(len(u_lidar))]
-    v_lidar = [v_lidar[i][valid_points[i]] for i in range(len(v_lidar))]
     z = [z[valid_points[i]] for i in range(len(valid_points))]
 
     return u_lidar, v_lidar, z
