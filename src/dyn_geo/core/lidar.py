@@ -38,24 +38,31 @@ def get_lidar_uv(f_lidar: Path, roi_lidar: Path, odir_cam_mvts:Path, georef_para
 
     # get lidar geo data expressed in the local reference system
     z, lidar_srs_local = lidar_2_local(f_lidar, roi_lidar, odir_cam_mvts, georef_params)
+    z = z[0].ravel()
 
     # initialize output variables (list of uv coordinates, list of valid points)
-    uv_lidar = []
+    u_lidar = []
+    v_lidar = []
     valid_points = []
 
     # loop through georef parameters
     for i in range(len(georef_params)):
 
         # get lidar uv coordinates gor each georef parameter
-        uv, valid_pts = georef_params[1].geo2pix(lidar_srs_local[:, 0:3])
+        uv, valid_pts = georef_params[i].geo2pix(lidar_srs_local[:, 0:3])
 
         # adapt uv to scaling factor
         uv = uv * scaling_percent / 100
 
-        uv_lidar.append(uv)
+        u_lidar.append(uv[0])
+        v_lidar.append(uv[1])
         valid_points.append(valid_pts)
 
-    return uv_lidar, valid_points, z[0]
+    u_lidar = [u_lidar[i][valid_points[i]] for i in range(len(u_lidar))]
+    v_lidar = [v_lidar[i][valid_points[i]] for i in range(len(v_lidar))]
+    z = [z[valid_points[i]] for i in range(len(valid_points))]
+
+    return u_lidar, v_lidar, z
 
 
 
