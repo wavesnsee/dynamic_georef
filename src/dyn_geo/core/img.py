@@ -54,7 +54,7 @@ def rescale(im, scale_percent):
     return im, width, height
 
 
-def to_rgba(img, h, w):
+def to_rgba(img, h, w, bokeh_compatible=True):
     """Convert image array to RGBA uint32 for Bokeh image_rgba."""
     if img.ndim == 2:
         img = np.stack([img] * 3, axis=-1)
@@ -62,7 +62,10 @@ def to_rgba(img, h, w):
     view = rgba.view(dtype=np.uint8).reshape((h, w, 4))
     view[:, :, :3] = img
     view[:, :, 3] = 255
-    return rgba
+    if bokeh_compatible:
+        return np.flipud(rgba)
+    else:
+        return rgba
 
 
 def read_json(fn):
@@ -165,14 +168,9 @@ def ls_im_2rgba(ls, scale_percent, bokeh_compatible=True):
         else:
             (height, width, _) = np.shape(im)
 
-        if bokeh_compatible:
-            # flipud
-            im = np.flipud(im)
+        # convert to rgba
+        im_rgba = to_rgba(im, height, width, bokeh_compatible)
+        rgba.append(im_rgba)
 
-            # convert to rgba
-            im_rgba = to_rgba(im, height, width)
-            rgba.append(im_rgba)
-        else:
-            rgba.append(im)
 
     return rgba, width, height
