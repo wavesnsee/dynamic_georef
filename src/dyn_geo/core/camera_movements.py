@@ -467,9 +467,7 @@ def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts, scaling_perce
     # list of uv lidar
     f_lidar = Path('/home/florent/Projects/Etretat/lidarhd/LHD_FXX_0497_0498_6960_6961_LAMB93_IGN69.tif')
     roi_lidar = Path('/home/florent/Projects/Etretat/lidarhd/roi_lidar_for_cam44_mvts.gpkg')
-    uv, valid_pts, z = get_lidar_uv(f_lidar, roi_lidar, odir_cam_mvts, georef_params, scaling_percent)
-    uv = uv[1]
-    valid_pts = valid_pts[1]
+    u, v, z = get_lidar_uv(f_lidar, roi_lidar, odir_cam_mvts, georef_params, scaling_percent)
 
     # 3D camera plots
     svg_strings_c3d = plot_3d_vecs(georef_params)
@@ -492,6 +490,9 @@ def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts, scaling_perce
     # get list of rgba ims
     rgba, width, height = img.ls_im_2rgba(ls, scaling_percent)
 
+    # pre-compute flipped v-coordinates for lidar display (Bokeh y-axis is top-down)
+    v_flipped = [height - v[i] for i in range(len(v))]
+
     # Left panel (single Div)
     div = Div(
         text=svg_strings_c3d[0],
@@ -500,23 +501,23 @@ def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts, scaling_perce
     )
 
     # Right panel
-    source2 = ColumnDataSource(data=dict(image=[rgba[0]]))
+    source_im = ColumnDataSource(data=dict(image=[rgba[0]]))
 
     p = figure(width=width, height=height, x_range=(0, width), y_range=(0, height), title=t_im[0])
     p.image_rgba(
         image="image",
-        source=source2,
+        source=source_im,
         x=0,
         y=0,
         dw=width,
         dh=height
     )
 
-    source_lidar = ColumnDataSource(dict(x=uv[0, :][valid_pts], y=height - uv[1, :][valid_pts], z=z.ravel()[valid_pts]))
+    source_lidar = ColumnDataSource(data=dict(x=u[0], y=v_flipped[0], z=z[0]))
     color_mapper = LinearColorMapper(
         palette=Viridis256,
-        low=np.nanmin(z),
-        high=np.nanmax(z),
+        low=np.nanmin(z[0]),
+        high=np.nanmax(z[0]),
     )
     p.scatter(
         "x",
@@ -538,9 +539,13 @@ def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts, scaling_perce
     callback = CustomJS(
         args=dict(
             div=div,
-            source=source2,
+            source_im=source_im,
+            source_lidar=source_lidar,
             svgs=svg_strings_c3d,
             imgs=rgba,
+            u=u,
+            v_flipped=v_flipped,
+            z=z,
             p=p,
             t_im=t_im
         ),
@@ -551,11 +556,18 @@ def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts, scaling_perce
             div.text = svgs[i];
 
             // Update image
-            source.data = {
+            source_im.data = {
                 image: [imgs[i]]
             };
+            
+            // Update scatter lidar
+            source_lidar.data = {
+                x: u[i],
+                y: v_flipped[i],
+                z: z[i]
+            };
 
-            source.change.emit();
+            source_lidar.change.emit();
             p.title.text = `${t_im[i]}`;
         """,
     )
