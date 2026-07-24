@@ -8,10 +8,8 @@ import io
 from copy import copy
 import json
 from georef.plot_tools import make_ref_frame, camera_3d_vecs
-from georef.operators import Georef, ExtrinsicMatrix
+from georef.operators import Georef, ExtrinsicMatrix, ProjectionGrid, Projector
 
-
-from dyn_geo.core import img
 from scipy.spatial.transform import Rotation as R
 from scipy.spatial.transform import Slerp
 from scipy.interpolate import make_splprep
@@ -22,8 +20,11 @@ from bokeh.layouts import column, row, gridplot
 from bokeh.palettes import Viridis256
 from bokeh.transform import transform
 
+from dyn_geo.core import img
 from dyn_geo.core.img import get_date
 from dyn_geo.core.lidar import lidar_geo2pix
+from dyn_geo.core.projection import project_ls_im
+
 
 
 def plot_gcps_ref_target(gcps_uv, gcps_uv_warped, f_cam_params, target_img_fn, ref_img_fn, dir_gcps):
@@ -538,6 +539,7 @@ def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts, f_gcps, scali
     # Right panel
     source_im = ColumnDataSource(data=dict(image=[rgba[0]]))
 
+    # raw image
     p = figure(width=width, height=height, x_range=(0, width), y_range=(0, height), title=t_im[0])
     p.image_rgba(
         image="image",
@@ -630,11 +632,26 @@ def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts, f_gcps, scali
             p.title.text = `${t_im[i]}`;
         """,
     )
+    # project images
+    imgs_proj = project_ls_im(ls, georef_params)
+    w = imgs_proj[0].shape[1]
+    h = imgs_proj[0].shape[0]
+    p2 = figure(width=500, height=500, x_range=(0, width), y_range=(0, height), title='projected images')
+    source_im_proj = ColumnDataSource(data=dict(image=[img.to_rgba(imgs_proj[0], h, w)]))
+    p2.image_rgba(
+        image="image",
+        source=source_im_proj,
+        x=0,
+        y=0,
+        dw=width,
+        dh=height
+    )
 
     slider.js_on_change("value", callback)
 
     layout = column(
         row(div, p),
+        p2,
         slider,
     )
 
