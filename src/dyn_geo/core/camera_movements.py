@@ -668,7 +668,7 @@ def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts, f_gcps, scali
         slider,
     )
 
-    output_file("slider_example.html")
+    output_file(odir_cam_mvts / 'camera_movements_3d.html', title='CAMERA MOVEMENTS 3D')
     save(layout)
 
     return
