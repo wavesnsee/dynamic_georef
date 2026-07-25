@@ -213,45 +213,44 @@ def run(dir_matches_data, dir_h, ref_f_rois_edges, dir_acc_metrics, ref_fname, t
                                                              ref_f_rois_edges)
 
     # Create a global title using a Div
-    global_title = Div(text="<h1>Accuracy metrics</h1>", width=600)
+    global_title = Div(text="<h1>Accuracy metrics</h1>", sizing_mode='stretch_width')
 
     # Range1d objects to share the same ranges between p1 and p2
     x_range = Range1d(min(t), max(t))
 
     plot_h = 200
-    plot_w = 1200
-    p1 = figure(width=plot_w, height=plot_h, tools="xpan,xwheel_zoom,reset", title="Number of matching points", x_range=x_range)
+    p1 = figure(sizing_mode='stretch_width', height=plot_h, tools="xpan,xwheel_zoom,reset", title="Number of matching points", x_range=x_range)
     p1.line(t, n, legend_label="raw", line_color="red", line_width=2)
     p1.line(t, n_valid, legend_label="valid", line_color="blue", line_width=2)
     p1.yaxis.axis_label = 'N matching points'
 
-    p2 = figure(width=plot_w, height=plot_h, tools="xpan,xwheel_zoom,reset", title="Reprojection error", x_range=x_range)
+    p2 = figure(sizing_mode='stretch_width', height=plot_h, tools="xpan,xwheel_zoom,reset", title="Reprojection error", x_range=x_range)
     p2.line(errors['t'], errors['max'], legend_label="max", line_color="chocolate", line_width=2)
     p2.line(errors['t'], errors['mean'], legend_label="mean", line_color="blue", line_width=2)
     p2.line(errors['t'], errors['std'], legend_label="std", line_color="black", line_width=2)
     p2.line(errors['t'], errors['rmse'], legend_label="rmse", line_color="mediumslateblue", line_width=2)
     p2.yaxis.axis_label = 'Reprojection errors (pixels)'
 
-    p3 = figure(width=plot_w, height=plot_h, tools="xpan,xwheel_zoom,reset", title="Phase residual",
+    p3 = figure(sizing_mode='stretch_width', height=plot_h, tools="xpan,xwheel_zoom,reset", title="Phase residual",
                 x_range=x_range)
     p3.line(t_error_metrics, phase_res, legend_label="Phase residual", line_color="black", line_width=2)
 
-    p4 = figure(width=plot_w, height=plot_h, tools="xpan,xwheel_zoom,reset", title="edge alignment score",
+    p4 = figure(sizing_mode='stretch_width', height=plot_h, tools="xpan,xwheel_zoom,reset", title="edge alignment score",
                 x_range=x_range)
     p4.line(t_error_metrics, edge_score, legend_label="Edge alignment score", line_color="black", line_width=2)
 
-    p5 = figure(width=plot_w, height=plot_h, tools="xpan,xwheel_zoom,reset", title="Peak Signal-to-Noise Ratio",
+    p5 = figure(sizing_mode='stretch_width', height=plot_h, tools="xpan,xwheel_zoom,reset", title="Peak Signal-to-Noise Ratio",
                 x_range=x_range)
     p5.line(t_error_metrics, psnr, legend_label="psnr", line_color="black", line_width=2)
     p5.yaxis.axis_label = 'psnr'
 
-    p6 = figure(width=plot_w, height=plot_h, tools="xpan,xwheel_zoom,reset", title="Structural_similarity index",
+    p6 = figure(sizing_mode='stretch_width', height=plot_h, tools="xpan,xwheel_zoom,reset", title="Structural_similarity index",
                 x_range=x_range)
     p6.line(t_error_metrics, ssi, legend_label="ssi", line_color="black", line_width=2)
     p6.yaxis.axis_label = 'ssi'
 
     select = figure(title="Drag the middle and edges of the selection box to change the range above",
-                    height=plot_h, width=plot_w,
+                    sizing_mode='stretch_width', height=plot_h,
                     x_axis_type="datetime", y_axis_type=None,
                     tools="", toolbar_location=None, background_fill_color="#efefef")
 
@@ -265,7 +264,7 @@ def run(dir_matches_data, dir_h, ref_f_rois_edges, dir_acc_metrics, ref_fname, t
 
     name = 'accuracy_metrics.html'
     output_file(dir_acc_metrics / name)
-    layout = column(global_title, p1, p2, p3, p4, p5, p6, select)
+    layout = column(global_title, p1, p2, p3, p4, p5, p6, select, sizing_mode='stretch_width')
     save(layout)
 
     return
