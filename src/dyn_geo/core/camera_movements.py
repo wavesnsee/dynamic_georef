@@ -581,7 +581,7 @@ def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts, f_gcps, scali
     p.legend.location = "top_left"
 
     # project images
-    imgs_proj = project_ls_im(ls, georef_params)
+    imgs_proj = project_ls_im(ls, georef_params, z_proj=9.0)
     # height, width
     w = imgs_proj[0].shape[1]
     h = imgs_proj[0].shape[0]
