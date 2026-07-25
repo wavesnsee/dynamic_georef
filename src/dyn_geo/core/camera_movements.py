@@ -375,15 +375,16 @@ def plot_cam_mvts(date, angles, position, dates_interp, angles_interp, position_
     output_file(outdir_cam_mvts / 'camera_movements.html', title='CAMERA POSITION IN BEACHCAM COORDINATE SYSTEM')
 
     # Create a global title using a Div
-    global_title = Div(text="<h1>Camera movements</h1>", width=500)
+    global_title = Div(text="<h1>Camera movements</h1>", sizing_mode='stretch_width')
 
     def make_plot(label, unit, raw_vals, interp_vals, init_val, x_range=None, title=None):
         p = figure(
-            width=200, height=260,
+            height=260,
             x_axis_type='datetime',
             title=title,
             x_range=x_range,
-            tools="pan,wheel_zoom,box_zoom,reset,save"
+            tools="pan,wheel_zoom,box_zoom,reset,save",
+            sizing_mode='stretch_width',
         )
         p.grid.visible = True
 
@@ -427,7 +428,7 @@ def plot_cam_mvts(date, angles, position, dates_interp, angles_interp, position_
         toolbar_location='above',
         sizing_mode='stretch_width',
     )
-    layout = column(global_title, grid)
+    layout = column(global_title, grid, sizing_mode='stretch_width')
     save(layout)
 
 
@@ -676,38 +677,38 @@ def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts, f_gcps, scali
 def run(dir_h, dir_imgs, ref_img_fn, f_gcps, f_cam_params, dir_gcps, odir_cparams, odir_cparams_smooth, odir_cam_mvts):
 
     # compute camera position from initial georef
-    # angles_init, position_init = compute_cam_mvts([Georef.from_param_file(f_cam_params)])
-    #
-    # # compute georef parameters for each target image
-    # date, georef_params = compute_targets_extrinsic(dir_h, f_gcps, f_cam_params, dir_imgs, ref_img_fn, dir_gcps,
-    #                                                     odir_cparams)
-    #
-    # # compute camera movements of each target image
-    # angles, position = compute_cam_mvts(georef_params)
-    #
-    # # Despike camera movements
-    # valid = despike_cam_mvts(position_init, position)
-    #
-    # # plot despiking
-    # plot_despiking(date, position, valid, odir_cam_mvts)
-    #
-    # # keep only valid data
-    # date, georef_params, angles, position = keep_valid(date, georef_params, angles, position, valid, odir_cam_mvts)
-    #
-    # # interp extrinsic parameters of target images
-    # dates_interp, georef_params_interp = interp_targets_extrinsic(date, georef_params, f_cam_params)
-    #
-    # # compute camera movements interp
-    # angles_interp, position_interp = compute_cam_mvts(georef_params_interp)
-    #
-    # # plot camera movements raw and interpolated
-    # plot_cam_mvts(date, angles, position,
-    #               dates_interp, angles_interp, position_interp,
-    #               angles_init, position_init,
-    #               odir_cam_mvts)
-    #
-    # # compute and save interpolated camera parameters
-    # save_interp_cam_params(f_cam_params, dates_interp, angles_interp, position_interp, odir_cparams_smooth)
+    angles_init, position_init = compute_cam_mvts([Georef.from_param_file(f_cam_params)])
+
+    # compute georef parameters for each target image
+    date, georef_params = compute_targets_extrinsic(dir_h, f_gcps, f_cam_params, dir_imgs, ref_img_fn, dir_gcps,
+                                                        odir_cparams)
+
+    # compute camera movements of each target image
+    angles, position = compute_cam_mvts(georef_params)
+
+    # Despike camera movements
+    valid = despike_cam_mvts(position_init, position)
+
+    # plot despiking
+    plot_despiking(date, position, valid, odir_cam_mvts)
+
+    # keep only valid data
+    date, georef_params, angles, position = keep_valid(date, georef_params, angles, position, valid, odir_cam_mvts)
+
+    # interp extrinsic parameters of target images
+    dates_interp, georef_params_interp = interp_targets_extrinsic(date, georef_params, f_cam_params)
+
+    # compute camera movements interp
+    angles_interp, position_interp = compute_cam_mvts(georef_params_interp)
+
+    # plot camera movements raw and interpolated
+    plot_cam_mvts(date, angles, position,
+                  dates_interp, angles_interp, position_interp,
+                  angles_init, position_init,
+                  odir_cam_mvts)
+
+    # compute and save interpolated camera parameters
+    save_interp_cam_params(f_cam_params, dates_interp, angles_interp, position_interp, odir_cparams_smooth)
 
     # Slider plot of 3D camera movements, and raw/projected images
     plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts, f_gcps)
