@@ -6,7 +6,7 @@ def project_ls_im(ls, georef_params, z_proj=0):
     # initialization of output list
     imgs_proj = []
 
-    # altitude of projection
+    # resolution of projection
     res = 0.25
 
     # projection grid
