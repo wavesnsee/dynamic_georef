@@ -562,13 +562,8 @@ def run(dir_imgs, f_gcps, f_cam_params, dir_cparams_raw, odir_cparams_smooth, od
     # compute camera position from initial georef
     angles_init, position_init = compute_cam_mvts([Georef.from_param_file(f_cam_params)])
 
-    # compute georef parameters for each target image
-    # date, georef_params = compute_targets_extrinsic(dir_h, f_gcps, f_cam_params, dir_imgs, ref_img_fn, dir_gcps,
-    #                                                     odir_cparams)
-
     # load georef parameters for each target image
     date, georef_params = read_cam_params(dir_cparams_raw)
-
 
     # compute camera movements of each target image
     angles, position = compute_cam_mvts(georef_params)
