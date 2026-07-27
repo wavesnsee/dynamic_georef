@@ -30,6 +30,7 @@ class AppConfig(BaseModel):
     compute_fm: bool
     plot_fm: bool
     acc_metrics: bool
+    compute_raw_extrinsic: bool
     warp: bool
 
 def load_config(path: str) -> AppConfig:
@@ -70,9 +71,8 @@ def main(
             print('compute accuracy metrics between ref and target images')
             accuracy.main(conf)
 
-        # Compute camera movements
-        print('compute dynamic georefs')
-        cam_mvts.main(conf)
+        # Compute camera raw extrinsics, movements and smooth extrinsics
+        cam_mvts.main(conf, conf.compute_raw_extrinsic)
 
         # warp
         if conf.warp:

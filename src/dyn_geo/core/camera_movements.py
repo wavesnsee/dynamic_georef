@@ -1,137 +1,29 @@
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.dates as mdates
-import cv2
-from pathlib import Path
 import io
-from copy import copy
 import json
-from georef.plot_tools import make_ref_frame, camera_3d_vecs
-from georef.operators import Georef, ExtrinsicMatrix, ProjectionGrid, Projector
+from copy import copy
+from datetime import timedelta, datetime
+from pathlib import Path
 
+import matplotlib.dates as mdates
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+from bokeh.layouts import column, row, gridplot
+from bokeh.models import Range1d, ColumnDataSource, Div, CustomJS, Slider, LinearColorMapper, ColorBar
+from bokeh.palettes import Viridis256
+from bokeh.plotting import figure, save, output_file
+from bokeh.transform import transform
+from georef.operators import Georef, ExtrinsicMatrix
+from georef.plot_tools import make_ref_frame, camera_3d_vecs
+from scipy.interpolate import make_splprep
 from scipy.spatial.transform import Rotation as R
 from scipy.spatial.transform import Slerp
-from scipy.interpolate import make_splprep
-from datetime import timedelta, datetime
-from bokeh.plotting import figure, save, output_file
-from bokeh.models import Range1d, ColumnDataSource, Div, CustomJS, Slider, LinearColorMapper, ColorBar
-from bokeh.layouts import column, row, gridplot
-from bokeh.palettes import Viridis256
-from bokeh.transform import transform
 
 from dyn_geo.core import img
 from dyn_geo.core.img import get_date
 from dyn_geo.core.lidar import lidar_geo2pix
 from dyn_geo.core.projection import project_ls_im
-
-
-
-def plot_gcps_ref_target(gcps_uv, gcps_uv_warped, f_cam_params, target_img_fn, ref_img_fn, dir_gcps):
-
-    # read reference image
-    im_ref, _, _, _ = img.read(ref_img_fn, f_cam_params)
-
-    # read target img
-    im, _, _, _ = img.read(target_img_fn, f_cam_params)
-
-    # plot gcps on reference image and on target image
-    fig, ax = plt.subplots(1, 2, figsize=(20, 12))
-    ax[0].imshow(im_ref)
-    ax[0].set_title('Reference Image')
-    ax[0].plot(gcps_uv[:, 0], gcps_uv[:, 1], c='r', linewidth=0, markersize=3, marker='s', label='gcps raw')
-    ax[0].legend(loc='upper right')
-    ax[1].imshow(im)
-    ax[1].plot(np.squeeze(gcps_uv_warped)[:, 0], np.squeeze(gcps_uv_warped)[:, 1], c='r', linewidth=0, markersize=3,
-               marker='s', label='gcps warped with H')
-    ax[1].legend(loc='upper right')
-    ax[1].set_title('Target Image')
-    ax[0].set_xticks([])
-    ax[0].set_yticks([])
-    ax[1].set_xticks([])
-    ax[1].set_yticks([])
-
-    fig.savefig(dir_gcps / target_img_fn.name, bbox_inches='tight')
-
-    return
-
-
-def compute_targets_extrinsic(dir_h, f_gcps, f_cam_params, target_imgs_dir, ref_img_fn, dir_gcps, outdir_cam_params_upd,
-                              plot_gcps=True):
-
-    # list of homography matrixes
-    ls_h = sorted(dir_h.glob('*.npy'))
-
-    # Read initial camera parameters file
-    with open(f_cam_params, 'r') as f:
-        cam_params = json.load(f)
-
-    # read georef parameters, that will be updated for each target image
-    georef_params = Georef.from_param_file(f_cam_params)
-
-    # initialize list of Georef objects
-    georef_params_upd = [copy(georef_params) for i in range(len(ls_h))]
-
-    # initialize date
-    date = []
-
-    # read gcps file
-    df = pd.read_csv(f_gcps)
-
-    # extract gcps pixel coordinates
-    gcps_uv = df[['U', 'V']].to_numpy()
-
-    # compute gcps geo coordinates in local srs
-    gcps_xyz = df[['easting', 'northing', 'elevation']].to_numpy().T
-    gcps_xyz = (georef_params.local_srs.m_l_w @ gcps_xyz).T[:, 0:3]
-
-    # reshape gcps_xyz to make it compatible with solvePnPRansac
-    gcps_xyz = gcps_xyz.reshape(gcps_xyz.shape[0], 1, gcps_xyz.shape[1])
-
-    # loop through homographies
-    for i, f_h in enumerate(ls_h):
-        # load homography matrix
-        H = np.load(f_h)
-
-        # reverse H
-        H = np.linalg.inv(H)
-
-        # apply homography to gcps
-        gcps_uv_warped = cv2.perspectiveTransform(gcps_uv.reshape(-1, 1, 2), H)
-        gcps_uv_warped = gcps_uv_warped.reshape(-1, 2)
-        gcps_uv_warped = gcps_uv_warped.reshape(gcps_uv_warped.shape[0], 1, gcps_uv_warped.shape[1])
-
-        if plot_gcps:
-            # plot gcps on reference image and on target image
-            target_img_fn = target_imgs_dir / f_h.name.replace('.npy', '.jpg')
-            plot_gcps_ref_target(gcps_uv, gcps_uv_warped, f_cam_params, target_img_fn, ref_img_fn, dir_gcps)
-
-
-        # compute dynamic georef from warped gcps
-        ret, rvec, tvec, inliers = cv2.solvePnPRansac(gcps_xyz.astype(np.float32),
-                                                      gcps_uv_warped.astype(np.float32),
-                                                      georef_params.intrinsic_parameters.camera_matrix,
-                                                      georef_params.distortion_coefficients.array,
-                                                      rvec=None,
-                                                      tvec=None,
-                                                      iterationsCount=50000,
-                                                      reprojectionError=2,
-                                                      flags=cv2.SOLVEPNP_EPNP)
-
-        # time
-        t = img.get_date(f_h)
-        date.append(t)
-
-        # save updated georef parameters
-        extrinsic_upd = ExtrinsicMatrix(rvec, tvec)
-        georef_params_upd[i].extrinsic = extrinsic_upd
-
-        # save updated camera parameters, changing only extrinsic parameters
-        cam_params['extrinsic_parameters']['rvec'] = rvec.reshape(-1).tolist()
-        cam_params['extrinsic_parameters']['tvec'] = tvec.reshape(-1).tolist()
-        with open(outdir_cam_params_upd / f_h.name.replace('.npy', '.json'), 'w') as f:
-            json.dump(cam_params, f, indent=2)
-    return date, georef_params_upd
+from dyn_geo.core.camera_extrinsics import read_cam_params
 
 
 def interp_targets_rvec(georef_params_upd, dates, interp_dates):
@@ -485,18 +377,8 @@ def gcps_geo_2pix(f_gcps, georef_params, scaling_percent):
 
 def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts, f_gcps, scaling_percent=20):
 
-    # initialize georef_params and date
-    georef_params = []
-    t_cparams = []
-
-    # list of json camera parameters
-    ls_cparams = sorted(odir_cparams_smooth.glob('*.json'))
-
-    # read interp georef parameters
-    for f in ls_cparams:
-        gp = Georef.from_param_file(f)
-        georef_params.append(gp)
-        t_cparams.append(get_date(f))
+    # load georef parameters for each target image
+    t_cparams, georef_params = read_cam_params(odir_cparams_smooth)
 
     # list of uv lidar
     f_lidar = Path('/home/florent/Projects/Etretat/lidarhd/LHD_FXX_0497_0498_6960_6961_LAMB93_IGN69.tif')
@@ -675,14 +557,18 @@ def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts, f_gcps, scali
     return
 
 
-def run(dir_h, dir_imgs, ref_img_fn, f_gcps, f_cam_params, dir_gcps, odir_cparams, odir_cparams_smooth, odir_cam_mvts):
+def run(dir_imgs, f_gcps, f_cam_params, dir_cparams_raw, odir_cparams_smooth, odir_cam_mvts):
 
     # compute camera position from initial georef
     angles_init, position_init = compute_cam_mvts([Georef.from_param_file(f_cam_params)])
 
     # compute georef parameters for each target image
-    date, georef_params = compute_targets_extrinsic(dir_h, f_gcps, f_cam_params, dir_imgs, ref_img_fn, dir_gcps,
-                                                        odir_cparams)
+    # date, georef_params = compute_targets_extrinsic(dir_h, f_gcps, f_cam_params, dir_imgs, ref_img_fn, dir_gcps,
+    #                                                     odir_cparams)
+
+    # load georef parameters for each target image
+    date, georef_params = read_cam_params(dir_cparams_raw)
+
 
     # compute camera movements of each target image
     angles, position = compute_cam_mvts(georef_params)
