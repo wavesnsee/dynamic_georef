@@ -19,8 +19,8 @@ from scipy.interpolate import make_splprep
 from scipy.spatial.transform import Rotation as R
 from scipy.spatial.transform import Slerp
 
+from topo_an.core.plot import get_color_mapper
 from dyn_geo.core import img
-from dyn_geo.core.img import get_date
 from dyn_geo.core.lidar import lidar_geo2pix
 from dyn_geo.core.projection import project_ls_im
 from dyn_geo.core.camera_extrinsics import read_cam_params
@@ -420,6 +420,9 @@ def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts, f_gcps, scali
         height=400,
     )
 
+    # color mapper
+    color_mapper = get_color_mapper(low=np.nanmin(z[0]), high=np.nanmax(z[0]), type='topo')
+
     # Right panel
     source_im = ColumnDataSource(data=dict(image=[rgba[0]]))
 
@@ -437,11 +440,6 @@ def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts, f_gcps, scali
     source_lidar = ColumnDataSource(data=dict(x=u[0], y=v_flipped[0], z=z[0]))
     source_gcps = ColumnDataSource(data=dict(x=u_gcps[0], y=v_flipped_gcps[0], z=z_gcps[0]))
 
-    color_mapper = LinearColorMapper(
-        palette=Viridis256,
-        low=np.nanmin(z[0]),
-        high=np.nanmax(z[0]),
-    )
     p.scatter(
         "x",
         "y",
