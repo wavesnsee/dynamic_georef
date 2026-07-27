@@ -545,6 +545,12 @@ def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts, f_gcps, scali
 
     slider.js_on_change("value", callback)
 
+    # Hide ticks, labels, axis line
+    p.xaxis.visible = False
+    p.yaxis.visible = False
+    p2.xaxis.visible = False
+    p2.yaxis.visible = False
+
     layout = column(
         row(div, p),
         p2,

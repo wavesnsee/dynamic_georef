@@ -74,6 +74,11 @@ def plot_src_and_dst_matches_mpl(src_pts, dst_pts, inlier_mask, im_ref, im, outd
     ax[1].legend(loc='upper right')
     [ax[1].text(xi, yi, label, fontsize=10, ha='center', va='bottom') for xi, yi, label in zip(
         np.squeeze(src_pts[inlier_inds, 0]), np.squeeze(src_pts[inlier_inds, 1]), labels)]
+    # rm x,y ticks
+    ax[0].set_xticks([])
+    ax[0].set_yticks([])
+    ax[1].set_xticks([])
+    ax[1].set_yticks([])
 
     fig.savefig(outdir_matches_plots / (stem + '.jpg'), bbox_inches='tight')
     plt.close('all')
@@ -88,12 +93,7 @@ def plot_src_and_dst_matches(src_pts, dst_pts, inlier_mask, im_ref, im, outdir_m
     dst_pts = np.squeeze(dst_pts)
     src_pts = np.squeeze(src_pts)
     inlier_mask = np.squeeze(inlier_mask)
-    # inlier_inds = np.where(inlier_mask == 1)
     inlier_inds = np.where(inlier_mask)
-
-    # Bokeh  expects image origin at bottom-left, so flip vertically
-    # im_ref = np.flipud(im_ref)
-    # im = np.flipud(im)
 
     # Flip y-coordinates to match Bokeh's bottom-left origin
     dst_pts[:, 1] = h - dst_pts[:, 1]
@@ -128,6 +128,13 @@ def plot_src_and_dst_matches(src_pts, dst_pts, inlier_mask, im_ref, im, outdir_m
     p1.text(
         x=dst_pts[inlier_inds, 0].ravel(), y=dst_pts[inlier_inds, 1].ravel(), text=labels, text_font_size='10pt',
         text_align='center', text_baseline='bottom')
+
+    # Hide ticks, labels, axis line
+    p1.xaxis.visible = False
+    p1.yaxis.visible = False
+    p2.xaxis.visible = False
+    p2.yaxis.visible = False
+
     layout = row(p1, p2)
     name = name + '.html'
     output_file(outdir_matches_plots / name)
