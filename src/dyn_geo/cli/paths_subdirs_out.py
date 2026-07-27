@@ -29,7 +29,7 @@ class Paths:
         self.cam_params_raw = self.outdir / "cam_params" / "raw"
         self.cam_params_smooth = self.outdir / "cam_params" / "smooth"
         self.h = self.outdir / "H"
-        self.gcps  = self.outdir / "gcps"
+        self.gcps  = self.outdir / "gcps_raw_warped"
         self.warped = self.outdir / "warped"
         self.create_all()
 

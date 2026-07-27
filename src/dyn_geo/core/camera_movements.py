@@ -39,11 +39,11 @@ def plot_gcps_ref_target(gcps_uv, gcps_uv_warped, f_cam_params, target_img_fn, r
     fig, ax = plt.subplots(1, 2, figsize=(20, 12))
     ax[0].imshow(im_ref)
     ax[0].set_title('Reference Image')
-    ax[0].plot(gcps_uv[:, 0], gcps_uv[:, 1], c='r', linewidth=0, markersize=3, marker='s', label='gcps')
+    ax[0].plot(gcps_uv[:, 0], gcps_uv[:, 1], c='r', linewidth=0, markersize=3, marker='s', label='gcps raw')
     ax[0].legend(loc='upper right')
     ax[1].imshow(im)
     ax[1].plot(np.squeeze(gcps_uv_warped)[:, 0], np.squeeze(gcps_uv_warped)[:, 1], c='r', linewidth=0, markersize=3,
-               marker='s', label='gcps')
+               marker='s', label='gcps warped with H')
     ax[1].legend(loc='upper right')
     ax[1].set_title('Target Image')
     ax[0].set_xticks([])
@@ -481,6 +481,7 @@ def gcps_geo_2pix(f_gcps, georef_params, scaling_percent):
         z.append(gcps_xyz[:, 2][valid_pts])
 
     return u, v, z
+
 
 def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts, f_gcps, scaling_percent=20):
 
