@@ -75,7 +75,7 @@ def plot_src_and_dst_matches_mpl(src_pts, dst_pts, inlier_mask, im_ref, im, outd
     [ax[1].text(xi, yi, label, fontsize=10, ha='center', va='bottom') for xi, yi, label in zip(
         np.squeeze(src_pts[inlier_inds, 0]), np.squeeze(src_pts[inlier_inds, 1]), labels)]
 
-    fig.savefig(outdir_matches_plots / (stem + '.jpg'))
+    fig.savefig(outdir_matches_plots / (stem + '.jpg'), bbox_inches='tight')
     plt.close('all')
 
 
