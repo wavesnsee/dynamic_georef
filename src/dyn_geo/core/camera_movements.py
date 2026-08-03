@@ -7,6 +7,7 @@ from pathlib import Path
 import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 import numpy as np
+import numpy.linalg
 import pandas as pd
 from bokeh.layouts import column, row, gridplot
 from bokeh.models import Range1d, ColumnDataSource, Div, CustomJS, Slider, LinearColorMapper, ColorBar
@@ -137,8 +138,11 @@ def compute_cam_mvts(list_georef_params):
     for georef_params in list_georef_params:
 
         # get camera angles and position
-        a0, a1, a2 = georef_params.extrinsic.beachcam_angles
-        px, py, pz = georef_params.extrinsic.camera_position
+        try:
+            a0, a1, a2 = georef_params.extrinsic.beachcam_angles
+            px, py, pz = georef_params.extrinsic.camera_position
+        except numpy.linalg.LinAlgError:
+            a0, a1, a2, px, py, pz = np.nan * np.ones(6)
         angles['yaw'].append(a0)
         angles['pitch'].append(a1)
         angles['roll'].append(a2)
@@ -264,10 +268,10 @@ def plot_3d_vecs(georef_params, colors=['k', 'b'], axis_names=["x", "y", "z"], t
 def plot_cam_mvts(date, angles, position, dates_interp, angles_interp, position_interp,
                    angles_init, position_init, outdir_cam_mvts):
 
-    output_file(outdir_cam_mvts / 'camera_movements.html', title='CAMERA POSITION IN BEACHCAM COORDINATE SYSTEM')
+    output_file(outdir_cam_mvts / 'camera_movements.html', title='CAMERA MOVEMENTS')
 
     # Create a global title using a Div
-    global_title = Div(text="<h1>Camera movements</h1>", sizing_mode='stretch_width')
+    global_title = Div(text="<h1>Camera movements in beachcam coordinate system</h1>", sizing_mode='stretch_width')
 
     def make_plot(label, unit, raw_vals, interp_vals, init_val, x_range=None, title=None):
         p = figure(
@@ -555,7 +559,7 @@ def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts, f_gcps, scali
         slider,
     )
 
-    output_file(odir_cam_mvts / 'camera_movements_3d.html', title='CAMERA MOVEMENTS 3D')
+    output_file(odir_cam_mvts / 'camera_movements_3d.html', title='3D CAM MOVEMENTS')
     save(layout)
 
     return
