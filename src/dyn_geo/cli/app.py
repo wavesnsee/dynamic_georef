@@ -2,6 +2,7 @@ import sys
 from pathlib import Path
 import traceback
 from typing import Annotated
+from datetime import datetime
 import yaml
 from pydantic import BaseModel
 
@@ -33,6 +34,8 @@ class AppConfig(BaseModel):
     ref_img: RefImg
     target_imgs: TargetImgs
     pgrid: ProjectionGrid
+    start: datetime
+    end: datetime
     outdir: Path
     f_cam_params: Path
     matching: str

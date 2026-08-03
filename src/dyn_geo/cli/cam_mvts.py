@@ -13,6 +13,8 @@ def main(conf, compute_raw_extrinsic):
                              conf.ref_img.fname,
                              conf.ref_img.f_gcps,
                              conf.f_cam_params,
+                             conf.start,
+                             conf.end,
                              path.gcps,
                              path.cam_params_raw)
 

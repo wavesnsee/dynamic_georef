@@ -19,6 +19,7 @@ def plot_gcps_ref_target(gcps_uv, gcps_uv_warped, f_cam_params, target_img_fn, r
     im, _, _, _ = img.read(target_img_fn, f_cam_params)
 
     # plot gcps on reference image and on target image
+    plt.close('all')
     fig, ax = plt.subplots(1, 2, figsize=(20, 12))
     ax[0].imshow(im_ref)
     ax[0].set_title('Reference Image')
@@ -39,11 +40,12 @@ def plot_gcps_ref_target(gcps_uv, gcps_uv_warped, f_cam_params, target_img_fn, r
     return
 
 
-def compute_targets_extrinsic(dir_h, f_gcps, f_cam_params, target_imgs_dir, ref_img_fn, dir_gcps, outdir_cam_params_upd,
-                              plot_gcps=True):
+def compute_targets_extrinsic(dir_h, f_gcps, f_cam_params, target_imgs_dir, ref_img_fn, dir_gcps, start, end,
+                              outdir_cam_params_upd, plot_gcps=True):
 
     # list of homography matrixes
-    ls_h = sorted(dir_h.glob('*.npy'))
+    # ls_h = sorted(dir_h.glob('*.npy'))
+    ls_h = img.ls_period(dir_h, start, end, extension='*.npy')
 
     # Read initial camera parameters file
     with open(f_cam_params, 'r') as f:
@@ -136,11 +138,11 @@ def read_cam_params(dir_cparams):
     return t_cparams, georef_params
 
 
-def run(dir_h, dir_imgs, ref_img_fn, f_gcps, f_cam_params, dir_gcps, odir_cparams):
+def run(dir_h, dir_imgs, ref_img_fn, f_gcps, f_cam_params, start, end, dir_gcps, odir_cparams):
 
     # compute georef parameters for each target image
     compute_targets_extrinsic(dir_h, f_gcps, f_cam_params, dir_imgs, ref_img_fn, dir_gcps,
-                                                    odir_cparams)
+                                                    start, end, odir_cparams)
 
 
 

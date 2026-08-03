@@ -100,6 +100,12 @@ def get_date(fn):
     return date
 
 
+def ls_period(dir, start, end, extension='*.jp*g'):
+    ls = sorted(dir.glob(extension))
+    t_im = [get_date(f) for f in ls]
+    inds = [i for i, dt in enumerate(t_im) if start <= dt <= end]
+    return np.array(ls)[inds].tolist()
+
 def edges(gray):
     # https://www.geeksforgeeks.org/python/real-time-edge-detection-using-opencv-python/
 

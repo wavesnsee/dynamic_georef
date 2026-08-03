@@ -141,7 +141,7 @@ def plot_src_and_dst_matches(src_pts, dst_pts, inlier_mask, im_ref, im, outdir_m
     save(layout)
 
 
-def run(ref_fn, ref_f_rois, target_imgs_dir, f_cam_params, type_matching, path):
+def run(ref_fn, ref_f_rois, target_imgs_dir, start, end, f_cam_params, type_matching, path):
 
     # read reference image
     im_ref, im_ref_gray, h, w = img.read(ref_fn, f_cam_params)
@@ -170,7 +170,8 @@ def run(ref_fn, ref_f_rois, target_imgs_dir, f_cam_params, type_matching, path):
     masks_target = [cv2.dilate(masks[i], kernel, iterations=1) for i in range(len(masks))]
 
     # loop through target images
-    ls = sorted(target_imgs_dir.glob('*.jp*g'))
+    ls = img.ls_period(target_imgs_dir, start, end)
+
     for f in ls:
         print(f)
 
@@ -238,10 +239,11 @@ def run(ref_fn, ref_f_rois, target_imgs_dir, f_cam_params, type_matching, path):
     return
 
 
-def plot(fp_ref_im, target_imgs_dir, dir_matches_data, dir_matches_plot):
+def plot(fp_ref_im, target_imgs_dir, start, end, dir_matches_data, dir_matches_plot):
 
     # list of csv matching points data files
-    ls = sorted(dir_matches_data.glob('*.csv'))
+    # ls = sorted(dir_matches_data.glob('*.csv'))
+    ls = img.ls_period(dir_matches_data, start, end, extension='*.csv')
 
     # read ref im
     im_ref = cv2.cvtColor(cv2.imread(fp_ref_im), cv2.COLOR_BGR2RGB)

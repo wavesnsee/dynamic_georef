@@ -7,6 +7,8 @@ def main(conf):
         conf.ref_img.fname,
         conf.ref_img.f_rois_fm,
         conf.target_imgs.dir,
+        conf.start,
+        conf.end,
         conf.f_cam_params,
         conf.matching,
         Paths(conf.outdir, conf.matching)
@@ -18,5 +20,7 @@ def plot(conf):
     paths = Paths(conf.outdir, conf.matching)
     feature_matching.plot(conf.ref_img.fname,
                           conf.target_imgs.dir,
+                          conf.start,
+                          conf.end,
                           paths.matches_data,
                           paths.matches_plot)
