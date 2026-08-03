@@ -10,7 +10,7 @@ def project_ls_im(ls, georef_params, z_proj=0):
     res = 0.25
 
     # projection grid
-    projection_grid = ProjectionGrid(-35, 35, res, 15, 65, res, z_proj)
+    projection_grid = ProjectionGrid(-20, 30, res, 15, 50, res, z_proj)
 
     # project images
     for i, f in enumerate(ls):
