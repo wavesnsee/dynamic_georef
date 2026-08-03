@@ -1,16 +1,18 @@
 from georef.operators import Georef, ExtrinsicMatrix, ProjectionGrid, Projector
 from dyn_geo.core import img
 
-def project_ls_im(ls, georef_params, z_proj=0):
+def project_ls_im(ls, georef_params, pgrid, z_proj=0):
 
     # initialization of output list
     imgs_proj = []
 
     # resolution of projection
-    res = 0.25
+    # res = 0.25
+    res = pgrid.res
 
     # projection grid
-    projection_grid = ProjectionGrid(-20, 30, res, 15, 50, res, z_proj)
+    # projection_grid = ProjectionGrid(-20, 30, res, 15, 50, res, z_proj)
+    projection_grid = ProjectionGrid(pgrid.xmin, pgrid.xmax, pgrid.res, pgrid.ymin, pgrid.ymax, pgrid.res, pgrid.z)
 
     # project images
     for i, f in enumerate(ls):

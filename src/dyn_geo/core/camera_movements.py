@@ -378,7 +378,7 @@ def gcps_geo_2pix(f_gcps, georef_params, scaling_percent):
     return u, v, z
 
 
-def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts, f_gcps, scaling_percent=20):
+def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts, f_gcps, pgrid, scaling_percent=20):
 
     # load georef parameters for each target image
     t_cparams, georef_params = read_cam_params(odir_cparams_smooth)
@@ -467,13 +467,13 @@ def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts, f_gcps, scali
     p.legend.location = "top_left"
 
     # project images
-    imgs_proj = project_ls_im(ls, georef_params, z_proj=9.0)
+    imgs_proj = project_ls_im(ls, georef_params, pgrid, z_proj=9.0)
     # height, width
     w = imgs_proj[0].shape[1]
     h = imgs_proj[0].shape[0]
     # convert to rgba
     imgs_proj = [img.to_rgba(im, h, w) for im in imgs_proj]
-    f_zoom = 4
+    f_zoom = 3
     p2 = figure(width=w * f_zoom, height=h * f_zoom, title='projected:')
     source_im_proj = ColumnDataSource(data=dict(image=[imgs_proj[0]]))
     p2.image_rgba(
@@ -572,7 +572,7 @@ def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts, f_gcps, scali
     return
 
 
-def run(dir_imgs, f_gcps, f_cam_params, dir_cparams_raw, odir_cparams_smooth, odir_cam_mvts):
+def run(dir_imgs, f_gcps, f_cam_params, pgrid, dir_cparams_raw, odir_cparams_smooth, odir_cam_mvts):
 
     # compute camera position from initial georef
     angles_init, position_init = compute_cam_mvts([Georef.from_param_file(f_cam_params)])
@@ -608,4 +608,4 @@ def run(dir_imgs, f_gcps, f_cam_params, dir_cparams_raw, odir_cparams_smooth, od
     save_interp_cam_params(f_cam_params, dates_interp, angles_interp, position_interp, odir_cparams_smooth)
 
     # Slider plot of 3D camera movements, and raw/projected images
-    plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts, f_gcps)
+    plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts, f_gcps, pgrid)

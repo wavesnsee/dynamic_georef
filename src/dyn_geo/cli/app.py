@@ -21,9 +21,18 @@ class RefImg(BaseModel):
 class TargetImgs(BaseModel):
     dir: Path
 
+class ProjectionGrid(BaseModel):
+    xmin: int
+    xmax: int
+    ymin: int
+    ymax: int
+    res: float
+    z: float
+
 class AppConfig(BaseModel):
     ref_img: RefImg
     target_imgs: TargetImgs
+    pgrid: ProjectionGrid
     outdir: Path
     f_cam_params: Path
     matching: str
@@ -32,6 +41,7 @@ class AppConfig(BaseModel):
     acc_metrics: bool
     compute_raw_extrinsic: bool
     warp: bool
+
 
 def load_config(path: str) -> AppConfig:
     with open(path, "r", encoding="utf-8") as f:

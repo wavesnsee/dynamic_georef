@@ -7,6 +7,13 @@ target_imgs:
   dir: '/home/florent/Projects/Etretat/Etretat_central2/test_stab_fm/target_imgs'
 f_cam_params: '/home/florent/Projects/Etretat/Etretat_central2/info/cam_params_central2.json'
 matching: 'flann' # bfmatcher or flann
+pgrid:
+  xmin: -20
+  xmax: 30
+  ymin: 15
+  ymax: 50
+  res: 0.20
+  z: 9.0
 outdir: '/home/florent/Projects/Etretat/Etretat_central2/test_stab_fm/stab_fm_out/'
 compute_fm: False
 plot_fm: False

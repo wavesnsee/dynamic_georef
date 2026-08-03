@@ -20,6 +20,7 @@ def main(conf, compute_raw_extrinsic):
     camera_movements.run(conf.target_imgs.dir,
                          conf.ref_img.f_gcps,
                          conf.f_cam_params,
+                         conf.pgrid,
                          path.cam_params_raw,
                          path.cam_params_smooth,
                          path.cam_mvts
