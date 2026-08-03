@@ -253,7 +253,6 @@ def plot_3d_vecs(georef_params, colors=['k', 'b'], axis_names=["x", "y", "z"], t
         ax.set_aspect("equal")
         ax.set_axis_off()
         ax.grid(False)
-        # plt.show()
 
         # Render it to an in-memory SVG buffer
         buf = io.BytesIO()
@@ -431,7 +430,7 @@ def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts, f_gcps, scali
     source_im = ColumnDataSource(data=dict(image=[rgba[0]]))
 
     # raw image
-    p = figure(width=width, height=height, x_range=(0, width), y_range=(0, height), title=t_im[0])
+    p = figure(width=width, height=height, x_range=(0, width), y_range=(0, height), title='raw:')
     p.image_rgba(
         image="image",
         source=source_im,
@@ -456,8 +455,10 @@ def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts, f_gcps, scali
         "x",
         "y",
         source=source_gcps,
-        size=3,
+        size=4,
         color=transform("z", color_mapper),
+        line_color="black",
+        line_width=1,
         legend_label="gcps"
     )
     color_bar = ColorBar(color_mapper=color_mapper)
@@ -472,7 +473,8 @@ def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts, f_gcps, scali
     h = imgs_proj[0].shape[0]
     # convert to rgba
     imgs_proj = [img.to_rgba(im, h, w) for im in imgs_proj]
-    p2 = figure(width=400, height=400, x_range=(0, width), y_range=(0, height), title='projected images')
+    f_zoom = 4
+    p2 = figure(width=w * f_zoom, height=h * f_zoom, title='projected:')
     source_im_proj = ColumnDataSource(data=dict(image=[imgs_proj[0]]))
     p2.image_rgba(
         image="image",
@@ -482,13 +484,20 @@ def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts, f_gcps, scali
         dw=width,
         dh=height
     )
+    # Remove grid lines
+    p2.xgrid.grid_line_color = None
+    p2.ygrid.grid_line_color = None
+    p2.outline_line_color = None
 
     slider = Slider(
         start=0,
         end=len(ls) - 1,
         value=0,
-        step=1
+        step=1,
+        show_value=False
     )
+
+    slider_label = Div(text=f'<b>{t_im[0]}<b>', width=400)
 
     callback = CustomJS(
         args=dict(
@@ -506,8 +515,8 @@ def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts, f_gcps, scali
             v_flipped_gcps=v_flipped_gcps,
             z_gcps=z_gcps,
             imgs_proj=imgs_proj,
-            p=p,
-            t_im=t_im
+            t_im=t_im,
+            slider_label=slider_label
         ),
         code="""
             const i = cb_obj.value;
@@ -519,28 +528,28 @@ def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts, f_gcps, scali
             source_im.data = {
                 image: [imgs[i]]
             };
-            
+
             // Update scatter lidar
             source_lidar.data = {
                 x: u[i],
                 y: v_flipped[i],
                 z: z[i]
             };
-            
+
             // Update scatter gcps
             source_gcps.data = {
                 x: u_gcps[i],
                 y: v_flipped_gcps[i],
                 z: z_gcps[i]
             };
-            
+
             // Update image
             source_im_proj.data = {
                 image: [imgs_proj[i]]
             };
 
             source_lidar.change.emit();
-            p.title.text = `${t_im[i]}`;
+            slider_label.text = "<b>" + t_im[i] + "</b>";
         """,
     )
 
@@ -554,9 +563,7 @@ def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts, f_gcps, scali
     p2.yaxis.visible = False
 
     layout = column(
-        row(div, p),
-        p2,
-        slider,
+        row(column(div, column(slider, slider_label)), column(p, p2))
     )
 
     output_file(odir_cam_mvts / 'camera_movements_3d.html', title='3D CAM MOVEMENTS')
