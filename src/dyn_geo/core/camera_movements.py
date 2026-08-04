@@ -37,6 +37,10 @@ def interp_targets_rvec(georef_params_upd, dates, interp_dates):
     # Initialize the multiple rotations in one Rotation object
     rots = R.from_rotvec(rvecs)
 
+    # from scipy.spatial.transform import RotationSpline
+    # spline = RotationSpline(dates, rots)
+    # interp_rots = spline(interp_dates)
+
     # Create the interpolator object
     slerp = Slerp(dates, rots)
 
