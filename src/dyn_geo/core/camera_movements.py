@@ -171,7 +171,7 @@ def despike_cam_mvts(position_ref, position, threshold_d=0.6):
 
     valid = np.array(d) < threshold_d
 
-    return valid
+    return d, valid
 
 
 def keep_valid(date, georef_params_upd, angles, position, valid, outdir_cam_mvts):
@@ -186,37 +186,56 @@ def keep_valid(date, georef_params_upd, angles, position, valid, outdir_cam_mvts
     return date, georef_params_upd, angles, position
 
 
-def plot_despiking(date, position, valid, outdir_cam_mvts):
-    plot_h = 250
-    plot_w = 1800
-    x_range = Range1d(min(date), max(date))
+def plot_despiking(date, position, valid, position_init, d_pos, threshold_d, outdir_cam_mvts):
+
+    def make_plot(date, position, valid, position_init, label):
+        x_range = Range1d(min(date), max(date))
+        y_range = Range1d(position_init[label][0] - 1, position_init[label][0] + 1)
+        p = figure(height=200, x_axis_type='datetime', title=f'Camera position, {label}', x_range=x_range,
+                   y_range=y_range, tools="pan,wheel_zoom,box_zoom,reset,save", sizing_mode='stretch_width',
+        )
+
+        p.grid.visible = True
+
+        # init line (dashed gold horizontal line)
+        p.line(
+            x=[date[0], date[-1]], y=[position_init[label], position_init[label]],
+            line_width=2, color='gold', line_dash=(4, 4),
+            legend_label=f'{label} init (m))'
+        )
+
+        # plot camera position
+        p.scatter(date, position[label], legend_label=label, color='red', size=10, alpha=1)
+        p.scatter(np.array(date)[valid], np.array(position[label])[valid],
+                  legend_label=f"{label} valid", color='green', size=10, alpha=1)
+        p.yaxis.axis_label = f'{label}'
+
+        return p, x_range
 
     # Create a global title using a Div
-    global_title = Div(text="<h1>Despiking camera movements from camera position in beachcam coordinates system</h1>", width=plot_w)
+    global_title = Div(text="<h1>Despiking camera movements from camera position in beachcam coordinates system</h1>",
+                       sizing_mode='stretch_width')
 
-    # plot camera position, x
-    p1 = figure(width=plot_w, height=plot_h, tools="xpan,xwheel_zoom,reset", x_range=x_range)
-    p1.scatter(date, position['x'], legend_label="x", color='red', size=10, alpha=1)
-    p1.scatter(np.array(date)[valid], np.array(position['x'])[valid], legend_label="x valid", color='green', size=10,
-               alpha=1)
-    p1.yaxis.axis_label = 'Camera position, x'
+    # camera position plots
+    p1, x_range = make_plot(date, position, valid, position_init, 'x')
+    p2, _ = make_plot(date, position, valid, position_init, 'y')
+    p3, _ = make_plot(date, position, valid, position_init, 'z')
 
-    # plot camera position, y
-    p2 = figure(width=plot_w, height=plot_h, tools="xpan,xwheel_zoom,reset", x_range=x_range)
-    p2.scatter(date, position['y'], legend_label="y", color='red', size=10, alpha=1)
-    p2.scatter(np.array(date)[valid], np.array(position['y'])[valid], legend_label="y valid", color='green', size=10,
-               alpha=1)
-    p2.yaxis.axis_label = 'Camera position, y'
+    # camera diff pos
+    p4 = figure(height=200, x_axis_type='datetime', title=f'Difference Camera position (m)',
+        x_range=x_range, y_range=Range1d(0, 1),  sizing_mode='stretch_width')
+    p4.grid.visible = True
+    p4.scatter(date, d_pos, legend_label='diff(m)', color='red', size=10, alpha=1)
+    p4.scatter(np.array(date)[valid], np.array(d_pos)[valid], legend_label=f"valid", color='green', size=10, alpha=1)
+    # threshold line
+    p4.line(
+        x=[date[0], date[-1]], y=[threshold_d, threshold_d],
+        line_width=2, color='darkred', line_dash=(4, 4), legend_label=f'threshold despiking (m))'
+    )
 
-    # plot camera position, z
-    p3 = figure(width=plot_w, height=plot_h, tools="xpan,xwheel_zoom,reset", x_range=x_range)
-    p3.scatter(date, position['z'], legend_label="z", color='red', size=10, alpha=1)
-    p3.scatter(np.array(date)[valid], np.array(position['z'])[valid], legend_label="z valid", color='green', size=10,
-               alpha=1)
-    p3.yaxis.axis_label = 'Camera position, z'
-
-    output_file(outdir_cam_mvts / 'despiking.html')
-    layout = column(global_title, p1, p2, p3)
+    # save plot
+    output_file(outdir_cam_mvts / 'despiking.html', title='DESPIKING')
+    layout = column(global_title, p1, p2, p3, p4, sizing_mode='stretch_width')
     save(layout)
 
     return
@@ -276,7 +295,7 @@ def plot_cam_mvts(date, angles, position, dates_interp, angles_interp, position_
     # Create a global title using a Div
     global_title = Div(text="<h1>Camera movements in beachcam coordinate system</h1>", sizing_mode='stretch_width')
 
-    def make_plot(label, unit, raw_vals, interp_vals, init_val, x_range=None, title=None):
+    def make_plot(label, unit, raw_vals, interp_vals, init_val, x_range=None, y_range=None, title=None):
         p = figure(
             height=260,
             x_axis_type='datetime',
@@ -285,6 +304,9 @@ def plot_cam_mvts(date, angles, position, dates_interp, angles_interp, position_
             tools="pan,wheel_zoom,box_zoom,reset,save",
             sizing_mode='stretch_width',
         )
+        if y_range is not None:
+            p.y_range.start = y_range[0]
+            p.y_range.end = y_range[1]
         p.grid.visible = True
 
         # init line (dashed gold horizontal line)
@@ -316,9 +338,12 @@ def plot_cam_mvts(date, angles, position, dates_interp, angles_interp, position_
     p_pitch = make_plot('pitch', '°', angles['pitch'], angles_interp['pitch'], angles_init['pitch'], x_range=x_range, title="Camera pitch")
     p_roll = make_plot('roll', '°', angles['roll'], angles_interp['roll'], angles_init['roll'], x_range=x_range, title="Camera roll")
 
-    p_x = make_plot('x', 'm', position['x'], position_interp['x'], position_init['x'], x_range=x_range, title="Camera position, x")
-    p_y = make_plot('y', 'm', position['y'], position_interp['y'], position_init['y'], x_range=x_range, title="Camera position, y")
-    p_z = make_plot('z', 'm', position['z'], position_interp['z'], position_init['z'], x_range=x_range, title="Camera position, z")
+    p_x = make_plot('x', 'm', position['x'], position_interp['x'], position_init['x'], x_range=x_range,
+                    y_range=[position_init['x'][0]-0.3, position_init['x'][0] + 0.3], title="Camera position, x")
+    p_y = make_plot('y', 'm', position['y'], position_interp['y'], position_init['y'], x_range=x_range,
+                    y_range=[position_init['y'][0]-0.3, position_init['y'][0] + 0.3], title="Camera position, y")
+    p_z = make_plot('z', 'm', position['z'], position_interp['z'], position_init['z'], x_range=x_range,
+                    y_range=[position_init['z'][0]-0.3, position_init['z'][0] + 0.3], title="Camera position, z")
 
     grid = gridplot(
         [[p_yaw, p_x],
@@ -588,10 +613,11 @@ def run(dir_imgs, f_gcps, f_cam_params, pgrid, dir_cparams_raw, odir_cparams_smo
     angles, position = compute_cam_mvts(georef_params)
 
     # Despike camera movements
-    valid = despike_cam_mvts(position_init, position)
+    threshold_d = 0.25
+    d_pos, valid = despike_cam_mvts(position_init, position, threshold_d=threshold_d)
 
     # plot despiking
-    plot_despiking(date, position, valid, odir_cam_mvts)
+    plot_despiking(date, position, valid, position_init, d_pos, threshold_d, odir_cam_mvts)
 
     # keep only valid data
     date, georef_params, angles, position = keep_valid(date, georef_params, angles, position, valid, odir_cam_mvts)
