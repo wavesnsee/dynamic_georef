@@ -1,10 +1,10 @@
 ref_img:
   fname: '/home/florent/Projects/Etretat/Etretat_central2/images/raw/A_Etretat_central2_2fps_600s_20251015_15_00.jpg'
-  f_rois_fm: '/home/florent/Projects/Etretat/Etretat_central2/test_stab_fm/A_Etretat_central2_2fps_600s_20251015_15_00_rois_fm.json'
-  f_rois_edges: '/home/florent/Projects/Etretat/Etretat_central2/test_stab_fm/A_Etretat_central2_2fps_600s_20251015_15_00_rois_edges.json'
+  f_rois_fm: '/home/florent/Projects/Etretat/Etretat_central2/test_dyn_geo/A_Etretat_central2_2fps_600s_20251015_15_00_rois_fm.json'
+  f_rois_edges: '/home/florent/Projects/Etretat/Etretat_central2/test_dyn_geo/A_Etretat_central2_2fps_600s_20251015_15_00_rois_edges.json'
   f_gcps: '/home/florent/Projects/Etretat/Geodesie/GCPS_2025/fichiers_correspondance_coordonnees_relles_vs_pixels/CAM44/gcps_CAM44.csv'
 target_imgs:
-  dir: '/home/florent/Projects/Etretat/Etretat_central2/test_stab_fm/target_imgs'
+  dir: '/home/florent/Projects/Etretat/Etretat_central2/test_dyn_geo/target_imgs'
 f_cam_params: '/home/florent/Projects/Etretat/Etretat_central2/info/cam_params_central2.json'
 matching: 'flann' # bfmatcher or flann
 pgrid:
@@ -16,7 +16,7 @@ pgrid:
   z: 9.0
 start: 2026-03-28 00:00 # start for computation of feature matching, and raw extrinsic
 end: 2026-04-15 20:00 # end for computation of feature matching, and raw extrinsic
-outdir: '/home/florent/Projects/Etretat/Etretat_central2/test_stab_fm/stab_fm_out/'
+outdir: '/home/florent/Projects/Etretat/Etretat_central2/test_dyn_geo/dyn_geo_out/'
 compute_fm: False
 plot_fm: False
 acc_metrics: False
