@@ -421,11 +421,8 @@ def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts, f_gcps, pgrid
     ls = sorted(dir_imgs.glob('*.jp*g'))
     t_im = [img.get_date(f) for f in ls]
 
-    # keep only list elements whose date is close to the one of smoothed georef parameters
-    indices = [
-        min(range(len(t_im)), key=lambda i: abs(t_im[i] - d))
-        for d in t_cparams
-    ]
+    # keep only images at dates of camera params
+    indices = [i for i, val in enumerate(t_im) if val in t_cparams]
     ls = [ls[i] for i in indices]
     t_im = [t_im[i] for i in indices]
 
