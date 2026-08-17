@@ -10,8 +10,7 @@ import numpy as np
 import numpy.linalg
 import pandas as pd
 from bokeh.layouts import column, row, gridplot
-from bokeh.models import Range1d, ColumnDataSource, Div, CustomJS, Slider, LinearColorMapper, ColorBar
-from bokeh.palettes import Viridis256
+from bokeh.models import Range1d, ColumnDataSource, Div, CustomJS, Slider, ColorBar
 from bokeh.plotting import figure, save, output_file
 from bokeh.transform import transform
 from georef.operators import Georef, ExtrinsicMatrix
@@ -19,6 +18,7 @@ from georef.plot_tools import make_ref_frame, camera_3d_vecs
 from scipy.interpolate import make_splprep
 from scipy.spatial.transform import Rotation as R
 from scipy.spatial.transform import Slerp
+from scipy.signal import savgol_filter
 
 from topo_an.core.plot import get_color_mapper
 from dyn_geo.core import img
@@ -27,7 +27,7 @@ from dyn_geo.core.projection import project_ls_im
 from dyn_geo.core.camera_extrinsics import read_cam_params
 
 
-def interp_targets_rvec(georef_params_upd, dates, interp_dates):
+def smooth_rvecs(georef_params_upd):
 
     # store targets rvec to a list
     rvecs = []
@@ -35,60 +35,45 @@ def interp_targets_rvec(georef_params_upd, dates, interp_dates):
         rvecs.append(georef_params_upd[i].extrinsic.rvec.squeeze())
 
     # Initialize the multiple rotations in one Rotation object
-    rots = R.from_rotvec(rvecs)
+    rotations = R.from_rotvec(rvecs)
 
-    # from scipy.spatial.transform import RotationSpline
-    # spline = RotationSpline(dates, rots)
-    # interp_rots = spline(interp_dates)
+    # create quaternions from rvecs
+    quats = rotations.as_quat()  # (N, 4), scalar-last
 
-    # Create the interpolator object
-    slerp = Slerp(dates, rots)
+    # Force quaternion sign continuity (avoid double-cover flips, q and -q represent the same rotation but flipping sign
+    # mid-sequence breaks any component-wise filter)
+    for i in range(1, len(quats)):
+        if np.dot(quats[i], quats[i - 1]) < 0:
+            quats[i] *= -1
 
-    # perform Spherical Linear Interpolation of Rotations
-    interp_rots = slerp(interp_dates)
+    # Smooth each quaternion component
+    smoothed_quats = savgol_filter(quats, window_length=9, polyorder=2, axis=0)
 
-    # save interp_rots as rotation vectors
-    interp_rvecs = [interp_rots[i].as_rotvec() for i in range(len(interp_rots))]
+    # renormalize back onto the unit sphere
+    smoothed_quats /= np.linalg.norm(smoothed_quats, axis=1, keepdims=True)
 
-    return interp_rvecs
+    # convert quaternions to rvec
+    smoothed_rvecs = R.from_quat(smoothed_quats).as_rotvec()
+
+    return smoothed_rvecs
 
 
-def interp_targets_tvec(georef_params_upd, dates, interp_dates):
+def smooth_tvecs(georef_params_upd):
 
-    # store targets txn ty, tz to lists
-    tx = []
-    ty = []
-    tz = []
+    tvecs = []
+
     for i in range(len(georef_params_upd)):
-        tx_i, ty_i, tz_i = (georef_params_upd[i].extrinsic.tvec.squeeze())
-        tx.append(tx_i)
-        ty.append(ty_i)
-        tz.append(tz_i)
+        tvecs.append(georef_params_upd[i].extrinsic.tvec)
 
-    # normalize dates
-    dates = np.array(dates)
-    u = (dates - dates.min()) / (dates.max() - dates.min())
-    interp_dates = np.array(interp_dates)
-    u_interp =  (interp_dates - dates.min()) / (dates.max() - dates.min())
+    smoothed_tvecs = savgol_filter(tvecs, window_length=9, polyorder=2, axis=0)
 
-    # Interpolate with smoothing
-    spline, u_fit = make_splprep([tx, ty, tz],
-                                 u=u,
-                                 s=5,  # smoothing parameter
-                                 k=3)  # cubic
-
-    tvec_interp = spline(u_interp)
-
-    return tvec_interp
+    return smoothed_tvecs
 
 
-def interp_targets_extrinsic(dates, georef_params_upd, f_cam_params):
+def smooth_targets_extrinsic(dates, georef_params_upd, f_cam_params):
     '''
     Interpolation of rotation and translation vectors to compute smoothed georef params
     '''
-
-    # https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.transform.Slerp.html
-    # https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.transform.Rotation.html#scipy.spatial.transform.Rotation
 
     # read georef parameters, that will be updated for each target image
     georef_params = Georef.from_param_file(f_cam_params)
@@ -109,23 +94,26 @@ def interp_targets_extrinsic(dates, georef_params_upd, f_cam_params):
     georef_params_interp = [copy(georef_params) for _ in range(len(interp_dates))]
 
     # interpolation of rvec
-    interp_rvecs = interp_targets_rvec(georef_params_upd, dates, interp_dates)
+    # interp_rvecs = interp_targets_rvec(georef_params_upd, dates, interp_dates)
 
     # interpolation of tvec
-    interp_tvecs = interp_targets_tvec(georef_params_upd, dates, interp_dates)
+    # interp_tvecs = interp_targets_tvec(georef_params_upd, dates, interp_dates)
 
-    # convert interpolated dates back to datetime
-    interp_dates = [mdates.num2date(interp_dates[i]) for i in range(len(interp_dates))]
+    # smoothing rvec
+    smoothed_rvecs = smooth_rvecs(georef_params_upd)
 
-    # save updated georef parameters
-    for i in range(len(interp_rvecs)):
-        # if we want to leave tvec unchanged
-        # extrinsic_interp = ExtrinsicMatrix(interp_rvecs[i], georef_params_upd[0].extrinsic.tvec)
-        # otherwise:
-        extrinsic_interp = ExtrinsicMatrix(interp_rvecs[i], interp_tvecs[:, i])
-        georef_params_interp[i].extrinsic = extrinsic_interp
+    # smoothing tvec
+    smoothed_tvecs = smooth_tvecs(georef_params_upd)
 
-    return interp_dates, georef_params_interp
+    # initialize output georef_params_smooth, as a list copy of initial georef_params
+    georef_params_smooth = [copy(georef_params) for _ in range(len(georef_params_upd))]
+
+    # save smoothed georef parameters
+    for i in range(len(georef_params_upd)):
+        extrinsic = ExtrinsicMatrix(smoothed_rvecs[i], smoothed_tvecs[i])
+        georef_params_smooth[i].extrinsic = extrinsic
+
+    return georef_params_smooth
 
 
 def compute_cam_mvts(list_georef_params):
@@ -287,15 +275,15 @@ def plot_3d_vecs(georef_params, colors=['k', 'b'], axis_names=["x", "y", "z"], t
     return svg_strings
 
 
-def plot_cam_mvts(date, angles, position, dates_interp, angles_interp, position_interp,
-                   angles_init, position_init, outdir_cam_mvts):
+def plot_cam_mvts(date, angles, position, angles_smooth, position_smooth,
+                  angles_init, position_init, outdir_cam_mvts):
 
     output_file(outdir_cam_mvts / 'camera_movements.html', title='CAMERA MOVEMENTS')
 
     # Create a global title using a Div
     global_title = Div(text="<h1>Camera movements in beachcam coordinate system</h1>", sizing_mode='stretch_width')
 
-    def make_plot(label, unit, raw_vals, interp_vals, init_val, x_range=None, y_range=None, title=None):
+    def make_plot(label, unit, raw_vals, smoothed_vals, init_val, x_range=None, y_range=None, title=None):
         p = figure(
             height=260,
             x_axis_type='datetime',
@@ -321,8 +309,8 @@ def plot_cam_mvts(date, angles, position, dates_interp, angles_interp, position_
         p.scatter(date, raw_vals, size=8, marker='circle')
 
         # interpolated data
-        p.line(dates_interp, interp_vals, color='red', legend_label=f'{label} interp ({unit})')
-        p.scatter(dates_interp, interp_vals, size=8, color='red', marker='circle')
+        p.line(date, smoothed_vals, color='red', legend_label=f'{label} interp ({unit})')
+        p.scatter(date, smoothed_vals, size=8, color='red', marker='circle')
 
         p.legend.location = 'top_right'
         p.legend.label_text_font_size = '10pt'
@@ -334,15 +322,15 @@ def plot_cam_mvts(date, angles, position, dates_interp, angles_interp, position_
     x_range = Range1d(min(date), max(date))
 
     # plot camera angles and position
-    p_yaw = make_plot('yaw', '°', angles['yaw'], angles_interp['yaw'], angles_init['yaw'], x_range=x_range, title="Camera yaw")
-    p_pitch = make_plot('pitch', '°', angles['pitch'], angles_interp['pitch'], angles_init['pitch'], x_range=x_range, title="Camera pitch")
-    p_roll = make_plot('roll', '°', angles['roll'], angles_interp['roll'], angles_init['roll'], x_range=x_range, title="Camera roll")
+    p_yaw = make_plot('yaw', '°', angles['yaw'], angles_smooth['yaw'], angles_init['yaw'], x_range=x_range, title="Camera yaw")
+    p_pitch = make_plot('pitch', '°', angles['pitch'], angles_smooth['pitch'], angles_init['pitch'], x_range=x_range, title="Camera pitch")
+    p_roll = make_plot('roll', '°', angles['roll'], angles_smooth['roll'], angles_init['roll'], x_range=x_range, title="Camera roll")
 
-    p_x = make_plot('x', 'm', position['x'], position_interp['x'], position_init['x'], x_range=x_range,
+    p_x = make_plot('x', 'm', position['x'], position_smooth['x'], position_init['x'], x_range=x_range,
                     y_range=[position_init['x'][0]-0.3, position_init['x'][0] + 0.3], title="Camera position, x")
-    p_y = make_plot('y', 'm', position['y'], position_interp['y'], position_init['y'], x_range=x_range,
+    p_y = make_plot('y', 'm', position['y'], position_smooth['y'], position_init['y'], x_range=x_range,
                     y_range=[position_init['y'][0]-0.3, position_init['y'][0] + 0.3], title="Camera position, y")
-    p_z = make_plot('z', 'm', position['z'], position_interp['z'], position_init['z'], x_range=x_range,
+    p_z = make_plot('z', 'm', position['z'], position_smooth['z'], position_init['z'], x_range=x_range,
                     y_range=[position_init['z'][0]-0.3, position_init['z'][0] + 0.3], title="Camera position, z")
 
     grid = gridplot(
@@ -356,13 +344,13 @@ def plot_cam_mvts(date, angles, position, dates_interp, angles_interp, position_
     save(layout)
 
 
-def save_interp_cam_params(f_cam_params, dates_interp, angles_interp, position_interp, odir_cparams_upd_smooth):
+def save_interp_cam_params(f_cam_params, date, angles_interp, position_interp, odir_cparams_upd_smooth):
 
     # Read initial camara_parameters file
     with open(f_cam_params, 'r') as f:
         cam_params = json.load(f)
 
-    for i in range(len(dates_interp)):
+    for i in range(len(date)):
 
         # compute extrinsic parameters from origin and beachcam angles
         extr = ExtrinsicMatrix.from_origin_beachcam_angles([position_interp['x'][i], position_interp['y'][i], position_interp['z'][i]],
@@ -371,7 +359,7 @@ def save_interp_cam_params(f_cam_params, dates_interp, angles_interp, position_i
         # save updated camera parameters, changing only extrinsic parameters
         cam_params['extrinsic_parameters']['rvec'] = extr.rvec.reshape(-1).tolist()
         cam_params['extrinsic_parameters']['tvec'] = extr.tvec.reshape(-1).tolist()
-        with open(odir_cparams_upd_smooth / f'camera_parameters_{dates_interp[i].strftime('%Y%m%d_%H_%M')}.json', 'w') as f:
+        with open(odir_cparams_upd_smooth / f'camera_parameters_{date[i].strftime('%Y%m%d_%H_%M')}.json', 'w') as f:
             json.dump(cam_params, f, indent=2)
 
 
@@ -412,6 +400,10 @@ def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts, f_gcps, pgrid
     # load georef parameters for each target image
     t_cparams, georef_params = read_cam_params(odir_cparams_smooth)
 
+    # subsample
+    t_cparams = t_cparams[::4]
+    georef_params = georef_params[::4]
+
     # list of uv lidar
     f_lidar = Path('/home/florent/Projects/Etretat/lidarhd/LHD_FXX_0497_0498_6960_6961_LAMB93_IGN69.tif')
     roi_lidar = Path('/home/florent/Projects/Etretat/lidarhd/roi_lidar_for_cam44_mvts.gpkg')
@@ -427,7 +419,7 @@ def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts, f_gcps, pgrid
     ls = sorted(dir_imgs.glob('*.jp*g'))
     t_im = [img.get_date(f) for f in ls]
 
-    # keep only list elements whose date is close to the one of interp georef parameters
+    # keep only list elements whose date is close to the one of smoothed georef parameters
     indices = [
         min(range(len(t_im)), key=lambda i: abs(t_im[i] - d))
         for d in t_cparams
@@ -622,20 +614,20 @@ def run(dir_imgs, f_gcps, f_cam_params, pgrid, dir_cparams_raw, odir_cparams_smo
     # keep only valid data
     date, georef_params, angles, position = keep_valid(date, georef_params, angles, position, valid, odir_cam_mvts)
 
-    # interp extrinsic parameters of target images
-    dates_interp, georef_params_interp = interp_targets_extrinsic(date, georef_params, f_cam_params)
+    # smooth extrinsic parameters of target images
+    georef_params_smooth = smooth_targets_extrinsic(date, georef_params, f_cam_params)
 
-    # compute camera movements interp
-    angles_interp, position_interp = compute_cam_mvts(georef_params_interp)
+    # compute smoothed camera movements
+    angles_smooth, position_smooth = compute_cam_mvts(georef_params_smooth)
 
     # plot camera movements raw and interpolated
     plot_cam_mvts(date, angles, position,
-                  dates_interp, angles_interp, position_interp,
+                  angles_smooth, position_smooth,
                   angles_init, position_init,
                   odir_cam_mvts)
 
-    # compute and save interpolated camera parameters
-    save_interp_cam_params(f_cam_params, dates_interp, angles_interp, position_interp, odir_cparams_smooth)
+    # compute and save smoothed camera parameters
+    save_interp_cam_params(f_cam_params, date, angles_smooth, position_smooth, odir_cparams_smooth)
 
     # Slider plot of 3D camera movements, and raw/projected images
     plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts, f_gcps, pgrid)
