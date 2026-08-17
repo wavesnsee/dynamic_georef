@@ -396,7 +396,9 @@ def gcps_geo_2pix(f_gcps, georef_params, scaling_percent):
 
 
 def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts, f_gcps, pgrid, scaling_percent=20):
-
+    '''
+    # Slider plot of 3D camera movements, and raw/projected images
+    '''
     # load georef parameters for each target image
     t_cparams, georef_params = read_cam_params(odir_cparams_smooth)
 
@@ -593,7 +595,7 @@ def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts, f_gcps, pgrid
     return
 
 
-def run(dir_imgs, f_gcps, f_cam_params, pgrid, dir_cparams_raw, odir_cparams_smooth, odir_cam_mvts):
+def run(f_cam_params, dir_cparams_raw, odir_cparams_smooth, odir_cam_mvts):
 
     # compute camera position from initial georef
     angles_init, position_init = compute_cam_mvts([Georef.from_param_file(f_cam_params)])
@@ -628,6 +630,3 @@ def run(dir_imgs, f_gcps, f_cam_params, pgrid, dir_cparams_raw, odir_cparams_smo
 
     # compute and save smoothed camera parameters
     save_interp_cam_params(f_cam_params, date, angles_smooth, position_smooth, odir_cparams_smooth)
-
-    # Slider plot of 3D camera movements, and raw/projected images
-    plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts, f_gcps, pgrid)

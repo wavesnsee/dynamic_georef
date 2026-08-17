@@ -21,4 +21,6 @@ compute_fm: False
 plot_fm: False
 acc_metrics: False
 compute_raw_extrinsic: False
+compute_smooth_extrinsic: True
+plot_cam_3d_mvts: True
 warp: False

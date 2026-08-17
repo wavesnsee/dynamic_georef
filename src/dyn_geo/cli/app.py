@@ -43,6 +43,8 @@ class AppConfig(BaseModel):
     plot_fm: bool
     acc_metrics: bool
     compute_raw_extrinsic: bool
+    compute_smooth_extrinsic: bool
+    plot_cam_3d_mvts: bool
     warp: bool
 
 
@@ -84,8 +86,13 @@ def main(
             print('compute accuracy metrics between ref and target images')
             accuracy.main(conf)
 
-        # Compute camera raw extrinsics, movements and smooth extrinsics
-        cam_mvts.main(conf, conf.compute_raw_extrinsic)
+        # Compute camera raw extrinsics, smooth extrinsics
+        cam_mvts.main(conf, conf.compute_raw_extrinsic, conf.compute_smooth_extrinsic)
+
+        # Plot 3d camera movements
+        if conf.plot_cam_3d_mvts:
+            print('plot 3D camera movements')
+            cam_mvts.plot_3d(conf)
 
         # warp
         if conf.warp:

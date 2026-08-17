@@ -1,29 +1,40 @@
 from dyn_geo.core import camera_extrinsics, camera_movements
 from dyn_geo.cli.paths_subdirs_out import Paths
 
-def main(conf, compute_raw_extrinsic):
+def main(conf, compute_raw_extrinsic, compute_smooth_extrinsic):
 
-    path = Paths(conf.outdir, conf.matching)
+    paths = Paths(conf.outdir, conf.matching)
 
     # compute camera raw extrinsics
     if compute_raw_extrinsic:
         print('compute camera raw extrinsics')
-        camera_extrinsics.run(path.h,
+        camera_extrinsics.run(paths.h,
                              conf.target_imgs.dir,
                              conf.ref_img.fname,
                              conf.ref_img.f_gcps,
                              conf.f_cam_params,
                              conf.start,
                              conf.end,
-                             path.gcps,
-                             path.cam_params_raw)
+                             paths.gcps,
+                             paths.cam_params_raw)
 
-    print('compute camera movements and smooth extrinsics')
-    camera_movements.run(conf.target_imgs.dir,
-                         conf.ref_img.f_gcps,
-                         conf.f_cam_params,
-                         conf.pgrid,
-                         path.cam_params_raw,
-                         path.cam_params_smooth,
-                         path.cam_mvts
-                         )
+    # compute camera smooth extrinsics
+    if compute_smooth_extrinsic:
+        print('compute camera movements and smooth extrinsics')
+        camera_movements.run(conf.f_cam_params,
+                             paths.cam_params_raw,
+                             paths.cam_params_smooth,
+                             paths.cam_mvts
+                             )
+
+def plot_3d(conf):
+
+    paths = Paths(conf.outdir, conf.matching)
+
+    # plot 3D camera movements, in parallel with raw and projected images
+    camera_movements.plot_cam_mvts_3d(paths.cam_params_smooth,
+                                      conf.target_imgs.dir,
+                                      paths.cam_mvts,
+                                      conf.ref_img.f_gcps,
+                                      conf.pgrid)
+
