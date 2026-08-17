@@ -120,7 +120,7 @@ def compute_targets_extrinsic(dir_h, f_gcps, f_cam_params, target_imgs_dir, ref_
     return
 
 
-def read_cam_params(dir_cparams):
+def read_cam_params(dir_cparams, start=None, end=None):
 
     # initialize georef_params and date
     georef_params = []
@@ -131,9 +131,16 @@ def read_cam_params(dir_cparams):
 
     # read camera parameters
     for f in ls_cparams:
-        gp = Georef.from_param_file(f)
-        georef_params.append(gp)
-        t_cparams.append(img.get_date(f))
+        date = img.get_date(f)
+        if (start is None) and (end is None):
+            gp = Georef.from_param_file(f)
+            georef_params.append(gp)
+            t_cparams.append(date)
+        else:
+            if (date >= start) and (date <= end):
+                gp = Georef.from_param_file(f)
+                georef_params.append(gp)
+                t_cparams.append(date)
 
     return t_cparams, georef_params
 

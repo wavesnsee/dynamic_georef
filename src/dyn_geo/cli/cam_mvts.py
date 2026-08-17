@@ -36,5 +36,10 @@ def plot_3d(conf):
                                       conf.target_imgs.dir,
                                       paths.cam_mvts,
                                       conf.ref_img.f_gcps,
-                                      conf.pgrid)
+                                      conf.pgrid,
+                                      conf.plot3d.f_lidar,
+                                      conf.plot3d.roi_lidar,
+                                      conf.plot3d.start,
+                                      conf.plot3d.end
+                                      )
 

@@ -30,15 +30,22 @@ class ProjectionGrid(BaseModel):
     res: float
     z: float
 
+class Plot3d(BaseModel):
+    f_lidar: Path
+    roi_lidar: Path
+    start: datetime
+    end: datetime
+
 class AppConfig(BaseModel):
     ref_img: RefImg
     target_imgs: TargetImgs
+    f_cam_params: Path
+    matching: str
     pgrid: ProjectionGrid
     start: datetime
     end: datetime
     outdir: Path
-    f_cam_params: Path
-    matching: str
+    plot3d: Plot3d
     compute_fm: bool
     plot_fm: bool
     acc_metrics: bool

@@ -395,24 +395,24 @@ def gcps_geo_2pix(f_gcps, georef_params, scaling_percent):
     return u, v, z
 
 
-def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts, f_gcps, pgrid, scaling_percent=20):
+def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts, f_gcps, pgrid, f_lidar, roi_lidar,
+                     start, end, scaling_pcent=20):
     '''
     # Slider plot of 3D camera movements, and raw/projected images
     '''
+
     # load georef parameters for each target image
-    t_cparams, georef_params = read_cam_params(odir_cparams_smooth)
+    t_cparams, georef_params = read_cam_params(odir_cparams_smooth, start, end)
 
     # subsample
     t_cparams = t_cparams[::4]
     georef_params = georef_params[::4]
 
     # list of uv lidar
-    f_lidar = Path('/home/florent/Projects/Etretat/lidarhd/LHD_FXX_0497_0498_6960_6961_LAMB93_IGN69.tif')
-    roi_lidar = Path('/home/florent/Projects/Etretat/lidarhd/roi_lidar_for_cam44_mvts.gpkg')
-    u, v, z = lidar_geo2pix(f_lidar, roi_lidar, odir_cam_mvts, georef_params, scaling_percent)
+    u, v, z = lidar_geo2pix(f_lidar, roi_lidar, odir_cam_mvts, georef_params, scaling_pcent)
 
     # list of uv gcps
-    u_gcps, v_gcps, z_gcps = gcps_geo_2pix(f_gcps, georef_params, scaling_percent)
+    u_gcps, v_gcps, z_gcps = gcps_geo_2pix(f_gcps, georef_params, scaling_pcent)
 
     # 3D camera plots
     svg_strings_c3d = plot_3d_vecs(georef_params)
@@ -433,7 +433,7 @@ def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts, f_gcps, pgrid
     t_im = [t.strftime('%Y-%m-%d %H:%M') for t in t_im]
 
     # get list of rgba ims
-    rgba, width, height = img.ls_im_2rgba(ls, scaling_percent)
+    rgba, width, height = img.ls_im_2rgba(ls, scaling_pcent)
 
     # pre-compute flipped v-coordinates for lidar display (Bokeh y-axis is top-down)
     v_flipped = [height - v[i] for i in range(len(v))]

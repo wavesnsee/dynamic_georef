@@ -17,10 +17,15 @@ pgrid:
 start: 2026-03-28 00:00 # start for computation of feature matching, and raw extrinsic
 end: 2026-04-15 20:00 # end for computation of feature matching, and raw extrinsic
 outdir: '/home/florent/Projects/Etretat/Etretat_central2/test_dyn_geo/dyn_geo_out/'
+plot3d:
+  f_lidar: '/home/florent/Projects/Etretat/lidarhd/LHD_FXX_0497_0498_6960_6961_LAMB93_IGN69.tif'
+  roi_lidar: '/home/florent/Projects/Etretat/lidarhd/roi_lidar_for_cam44_mvts.gpkg'
+  start: 2026-03-11 00:00 # start for plot3d
+  end: 2026-03-28 20:00 # end for plot3d
 compute_fm: False
 plot_fm: False
 acc_metrics: False
 compute_raw_extrinsic: False
-compute_smooth_extrinsic: True
+compute_smooth_extrinsic: False
 plot_cam_3d_mvts: True
 warp: False
