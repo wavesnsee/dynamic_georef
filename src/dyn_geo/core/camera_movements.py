@@ -72,32 +72,11 @@ def smooth_tvecs(georef_params_upd):
 
 def smooth_targets_extrinsic(dates, georef_params_upd, f_cam_params):
     '''
-    Interpolation of rotation and translation vectors to compute smoothed georef params
+    Cmmothing of rotation and translation vectors
     '''
 
     # read georef parameters, that will be updated for each target image
     georef_params = Georef.from_param_file(f_cam_params)
-
-    def round_to_day_at_noon(dt):
-        return dt.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=0.5)
-
-    # dates to perform interpolation
-    interp_dates = np.arange(round_to_day_at_noon(dates[0]), round_to_day_at_noon(dates[-1]) + timedelta(days=1),
-                             timedelta(days=1)).astype(datetime)
-    interp_dates = interp_dates[np.logical_and((interp_dates > dates.min()), (interp_dates < dates.max()))]
-
-    # convert dates to num
-    dates = [mdates.date2num(dates[i]) for i in range(len(dates))]
-    interp_dates = [mdates.date2num(interp_dates[i]) for i in range(len(interp_dates))]
-
-    # initialize list of Georef objects
-    georef_params_interp = [copy(georef_params) for _ in range(len(interp_dates))]
-
-    # interpolation of rvec
-    # interp_rvecs = interp_targets_rvec(georef_params_upd, dates, interp_dates)
-
-    # interpolation of tvec
-    # interp_tvecs = interp_targets_tvec(georef_params_upd, dates, interp_dates)
 
     # smoothing rvec
     smoothed_rvecs = smooth_rvecs(georef_params_upd)
@@ -344,7 +323,7 @@ def plot_cam_mvts(date, angles, position, angles_smooth, position_smooth,
     save(layout)
 
 
-def save_interp_cam_params(f_cam_params, date, angles_interp, position_interp, odir_cparams_upd_smooth):
+def save_smooth_cam_params(f_cam_params, date, angles_interp, position_interp, odir_cparams_upd_smooth):
 
     # Read initial camara_parameters file
     with open(f_cam_params, 'r') as f:
@@ -604,7 +583,7 @@ def run(f_cam_params, dir_cparams_raw, odir_cparams_smooth, odir_cam_mvts):
     angles, position = compute_cam_mvts(georef_params)
 
     # Despike camera movements
-    threshold_d = 0.25
+    threshold_d = 0.25 # in cm
     d_pos, valid = despike_cam_mvts(position_init, position, threshold_d=threshold_d)
 
     # plot despiking
@@ -612,6 +591,9 @@ def run(f_cam_params, dir_cparams_raw, odir_cparams_smooth, odir_cam_mvts):
 
     # keep only valid data
     date, georef_params, angles, position = keep_valid(date, georef_params, angles, position, valid, odir_cam_mvts)
+
+    # create subperiods from large camera movements
+
 
     # smooth extrinsic parameters of target images
     georef_params_smooth = smooth_targets_extrinsic(date, georef_params, f_cam_params)
@@ -626,4 +608,4 @@ def run(f_cam_params, dir_cparams_raw, odir_cparams_smooth, odir_cam_mvts):
                   odir_cam_mvts)
 
     # compute and save smoothed camera parameters
-    save_interp_cam_params(f_cam_params, date, angles_smooth, position_smooth, odir_cparams_smooth)
+    save_smooth_cam_params(f_cam_params, date, angles_smooth, position_smooth, odir_cparams_smooth)
