@@ -27,18 +27,7 @@ from dyn_geo.core.projection import project_ls_im
 from dyn_geo.core.camera_extrinsics import read_cam_params
 
 
-def smooth_rvecs(georef_params):
-
-    # store targets rvec to a list
-    rvecs = []
-    for i in range(len(georef_params)):
-        rvecs.append(georef_params[i].extrinsic.rvec.squeeze())
-
-    # Initialize the multiple rotations in one Rotation object
-    rotations = R.from_rotvec(rvecs)
-
-    # create quaternions from rvecs
-    quats = rotations.as_quat()  # (N, 4), scalar-last
+def smooth_quats(quats):
 
     # Force quaternion sign continuity (avoid double-cover flips, q and -q represent the same rotation but flipping sign
     # mid-sequence breaks any component-wise filter)
@@ -52,10 +41,7 @@ def smooth_rvecs(georef_params):
     # renormalize back onto the unit sphere
     smoothed_quats /= np.linalg.norm(smoothed_quats, axis=1, keepdims=True)
 
-    # convert quaternions to rvec
-    smoothed_rvecs = R.from_quat(smoothed_quats).as_rotvec()
-
-    return smoothed_rvecs
+    return smoothed_quats
 
 
 def smooth_tvecs(georef_params):
@@ -70,22 +56,22 @@ def smooth_tvecs(georef_params):
     return smoothed_tvecs
 
 
-def smooth_targets_extrinsic(georef_params, f_cam_params):
+def smooth_targets_extrinsic(quats, georef_params):
     '''
-    Cmmothing of rotation and translation vectors
+    Smoothing of quaternions and translation vectors
     '''
 
-    # read georef parameters, that will be updated for each target image
-    georef_params = Georef.from_param_file(f_cam_params)
+    # smoothing quaternions
+    smoothed_quats = smooth_quats(quats)
 
-    # smoothing rvec
-    smoothed_rvecs = smooth_rvecs(georef_params)
+    # convert smoothed quaternions to rvec
+    smoothed_rvecs = R.from_quat(smoothed_quats).as_rotvec()
 
     # smoothing tvec
     smoothed_tvecs = smooth_tvecs(georef_params)
 
     # initialize output georef_params_smooth, as a list copy of initial georef_params
-    georef_params_smooth = [copy(georef_params) for _ in range(len(georef_params))]
+    georef_params_smooth = [copy(georef_params[0]) for _ in range(len(georef_params))]
 
     # save smoothed georef parameters in the dedicated variable 'georef_params_smooth'
     for i in range(len(georef_params)):
@@ -376,7 +362,18 @@ def gcps_geo_2pix(f_gcps, georef_params, scaling_percent):
 
 def get_quaternions(georef_params):
 
-    return
+    # store targets rvec to a list
+    rvecs = []
+    for i in range(len(georef_params)):
+        rvecs.append(georef_params[i].extrinsic.rvec.squeeze())
+
+    # Initialize the multiple rotations in one Rotation object
+    rotations = R.from_rotvec(rvecs)
+
+    # create quaternions from rvecs
+    quats = rotations.as_quat()  # (N, 4), scalar-last
+
+    return quats
 
 def get_periods(georef_params):
 
@@ -606,13 +603,13 @@ def run(f_cam_params, dir_cparams_raw, odir_cparams_smooth, odir_cam_mvts):
     date, georef_params, angles, position = keep_valid(date, georef_params, angles, position, valid, odir_cam_mvts)
 
     # quaternions
-    get_quaternions(georef_params)
+    quats = get_quaternions(georef_params)
 
     # get subperiods from large camera movements
-    get_periods(georef_params)
+    # get_periods(georef_params)
 
     # smooth extrinsic parameters of target images
-    georef_params_smooth = smooth_targets_extrinsic(georef_params, f_cam_params)
+    georef_params_smooth = smooth_targets_extrinsic(quats, georef_params)
 
     # compute smoothed camera movements
     angles_smooth, position_smooth = compute_cam_mvts(georef_params_smooth)
