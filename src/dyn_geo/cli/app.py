@@ -35,6 +35,7 @@ class Plot3d(BaseModel):
     roi_lidar: Path
     start: datetime
     end: datetime
+    only_at_noon: bool
 
 class AppConfig(BaseModel):
     ref_img: RefImg

@@ -41,6 +41,7 @@ def plot_3d(conf):
                                       conf.plot3d.f_lidar,
                                       conf.plot3d.roi_lidar,
                                       conf.plot3d.start,
-                                      conf.plot3d.end
+                                      conf.plot3d.end,
+                                      conf.plot3d.only_at_noon
                                       )
 
