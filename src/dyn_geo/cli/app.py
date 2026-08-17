@@ -44,6 +44,7 @@ class AppConfig(BaseModel):
     pgrid: ProjectionGrid
     start: datetime
     end: datetime
+    smooth_w: str
     outdir: Path
     plot3d: Plot3d
     compute_fm: bool
@@ -93,8 +94,8 @@ def main(
             print('compute accuracy metrics between ref and target images')
             accuracy.main(conf)
 
-        # Compute camera raw extrinsics, smooth extrinsics
-        cam_mvts.main(conf, conf.compute_raw_extrinsic, conf.compute_smooth_extrinsic)
+        # Compute camera raw extrinsics, and smooth extrinsics
+        cam_mvts.main(conf)
 
         # Plot 3d camera movements
         if conf.plot_cam_3d_mvts:

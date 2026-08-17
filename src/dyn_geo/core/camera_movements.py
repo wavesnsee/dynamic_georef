@@ -15,10 +15,7 @@ from bokeh.plotting import figure, save, output_file
 from bokeh.transform import transform
 from georef.operators import Georef, ExtrinsicMatrix
 from georef.plot_tools import make_ref_frame, camera_3d_vecs
-from scipy.interpolate import make_splprep
 from scipy.spatial.transform import Rotation as R
-from scipy.spatial.transform import Slerp
-from scipy.signal import savgol_filter
 
 from topo_an.core.plot import get_color_mapper
 from dyn_geo.core import img
@@ -27,7 +24,7 @@ from dyn_geo.core.projection import project_ls_im
 from dyn_geo.core.camera_extrinsics import read_cam_params
 
 
-def smooth_quats(quats, df_periods):
+def smooth_quats(quats, df_periods, smooth_w):
 
     # initialization
     smoothed_quats = []
@@ -37,18 +34,19 @@ def smooth_quats(quats, df_periods):
     for period in periods:
 
         # get_quaternions in the considered period
-        quats_p = quats[df_periods['i_period'] == period]
+        mask = df_periods['i_period'] == period
+        quats_p = quats[mask]
+        dates_p = df_periods.loc[mask, 'date'].values
+
         # Force quaternion sign continuity (avoid double-cover flips, q and -q represent the same rotation but flipping sign
         # mid-sequence breaks any component-wise filter)
         for i in range(1, len(quats_p)):
             if np.dot(quats_p[i], quats_p[i - 1]) < 0:
                 quats_p[i] *= -1
 
-        # Smooth each quaternion component
-        try:
-            smoothed_quats_p = savgol_filter(quats_p, window_length=9, polyorder=1, axis=0)
-        except ValueError:
-            smoothed_quats_p = savgol_filter(quats_p, window_length=len(quats_p), polyorder=1, axis=0)
+        # Smooth each quaternion component using a 3-day rolling mean
+        df_quat = pd.DataFrame(quats_p, index=dates_p)
+        smoothed_quats_p = df_quat.rolling(smooth_w, min_periods=1, center=True).mean().values.copy()
 
         # renormalize back onto the unit sphere
         smoothed_quats_p /= np.linalg.norm(smoothed_quats_p, axis=1, keepdims=True)
@@ -61,7 +59,7 @@ def smooth_quats(quats, df_periods):
     return smoothed_quats
 
 
-def smooth_tvecs(georef_params, df_periods):
+def smooth_tvecs(georef_params, df_periods, smooth_w):
 
     # get tvecs from georef_params
     tvecs = []
@@ -76,13 +74,13 @@ def smooth_tvecs(georef_params, df_periods):
 
     for period in periods:
         # get tvecs in the considered period
-        tvecs_p = tvecs[df_periods['i_period'] == period]
+        mask = df_periods['i_period'] == period
+        tvecs_p = tvecs[mask]
+        dates_p = df_periods.loc[mask, 'date'].values
 
-        # Smooth each tvec component
-        try:
-            smoothed_tvecs_p = savgol_filter(tvecs_p, window_length=9, polyorder=1, axis=0)
-        except ValueError:
-            smoothed_tvecs_p = savgol_filter(tvecs_p, window_length=len(tvecs_p), polyorder=1, axis=0)
+        # Smooth each tvec component using a 3-day rolling mean
+        df_tvec = pd.DataFrame(tvecs_p, index=dates_p)
+        smoothed_tvecs_p = df_tvec.rolling(smooth_w, min_periods=1, center=True).mean().values.copy()
 
         smoothed_tvecs.append(smoothed_tvecs_p)
 
@@ -92,19 +90,19 @@ def smooth_tvecs(georef_params, df_periods):
     return smoothed_tvecs
 
 
-def smooth_targets_extrinsic(quats, georef_params, df_periods):
+def smooth_targets_extrinsic(quats, georef_params, df_periods, smooth_w):
     '''
     Smoothing of quaternions and translation vectors
     '''
 
     # smoothing quaternions
-    smoothed_quats = smooth_quats(quats, df_periods)
+    smoothed_quats = smooth_quats(quats, df_periods, smooth_w)
 
     # convert smoothed quaternions to rvec
     smoothed_rvecs = R.from_quat(smoothed_quats).as_rotvec()
 
     # smoothing tvec
-    smoothed_tvecs = smooth_tvecs(georef_params, df_periods)
+    smoothed_tvecs = smooth_tvecs(georef_params, df_periods, smooth_w)
 
     # initialize output georef_params_smooth, as a list copy of initial georef_params
     georef_params_smooth = [copy(georef_params[0]) for _ in range(len(georef_params))]
@@ -667,7 +665,7 @@ def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts, f_gcps, pgrid
     return
 
 
-def run(f_cam_params, dir_cparams_raw, odir_cparams_smooth, odir_cam_mvts):
+def run(f_cam_params, dir_cparams_raw, odir_cparams_smooth, odir_cam_mvts, smooth_w):
 
     # compute camera position from initial georef
     angles_init, position_init = compute_cam_mvts([Georef.from_param_file(f_cam_params)])
@@ -695,7 +693,7 @@ def run(f_cam_params, dir_cparams_raw, odir_cparams_smooth, odir_cam_mvts):
     df_periods = get_periods(date, quats)
 
     # smooth extrinsic parameters of target images
-    georef_params_smooth = smooth_targets_extrinsic(quats, georef_params, df_periods)
+    georef_params_smooth = smooth_targets_extrinsic(quats, georef_params, df_periods, smooth_w)
 
     # compute smoothed camera movements
     angles_smooth, position_smooth = compute_cam_mvts(georef_params_smooth)

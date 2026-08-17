@@ -1,12 +1,12 @@
 from dyn_geo.core import camera_extrinsics, camera_movements
 from dyn_geo.cli.paths_subdirs_out import Paths
 
-def main(conf, compute_raw_extrinsic, compute_smooth_extrinsic):
+def main(conf):
 
     paths = Paths(conf.outdir, conf.matching)
 
     # compute camera raw extrinsics
-    if compute_raw_extrinsic:
+    if conf.compute_raw_extrinsic:
         print('compute camera raw extrinsics')
         camera_extrinsics.run(paths.h,
                              conf.target_imgs.dir,
@@ -19,12 +19,13 @@ def main(conf, compute_raw_extrinsic, compute_smooth_extrinsic):
                              paths.cam_params_raw)
 
     # compute camera smooth extrinsics
-    if compute_smooth_extrinsic:
+    if conf.compute_smooth_extrinsic:
         print('compute camera movements and smooth extrinsics')
         camera_movements.run(conf.f_cam_params,
                              paths.cam_params_raw,
                              paths.cam_params_smooth,
-                             paths.cam_mvts
+                             paths.cam_mvts,
+                             conf.smooth_w
                              )
 
 def plot_3d(conf):
