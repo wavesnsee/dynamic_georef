@@ -27,48 +27,84 @@ from dyn_geo.core.projection import project_ls_im
 from dyn_geo.core.camera_extrinsics import read_cam_params
 
 
-def smooth_quats(quats):
+def smooth_quats(quats, df_periods):
 
-    # Force quaternion sign continuity (avoid double-cover flips, q and -q represent the same rotation but flipping sign
-    # mid-sequence breaks any component-wise filter)
-    for i in range(1, len(quats)):
-        if np.dot(quats[i], quats[i - 1]) < 0:
-            quats[i] *= -1
+    # initialization
+    smoothed_quats = []
 
-    # Smooth each quaternion component
-    smoothed_quats = savgol_filter(quats, window_length=9, polyorder=2, axis=0)
+    periods = np.unique(df_periods['i_period'])
 
-    # renormalize back onto the unit sphere
-    smoothed_quats /= np.linalg.norm(smoothed_quats, axis=1, keepdims=True)
+    for period in periods:
 
+        # get_quaternions in the considered period
+        quats_p = quats[df_periods['i_period'] == period]
+        # Force quaternion sign continuity (avoid double-cover flips, q and -q represent the same rotation but flipping sign
+        # mid-sequence breaks any component-wise filter)
+        for i in range(1, len(quats_p)):
+            if np.dot(quats_p[i], quats_p[i - 1]) < 0:
+                quats_p[i] *= -1
+
+        # Smooth each quaternion component
+        try:
+            smoothed_quats_p = savgol_filter(quats_p, window_length=9, polyorder=1, axis=0)
+        except ValueError:
+            smoothed_quats_p = savgol_filter(quats_p, window_length=len(quats_p), polyorder=1, axis=0)
+
+        # renormalize back onto the unit sphere
+        smoothed_quats_p /= np.linalg.norm(smoothed_quats_p, axis=1, keepdims=True)
+
+        smoothed_quats.append(smoothed_quats_p)
+    
+    # concatenate smoothed quaternions
+    smoothed_quats = np.concatenate((smoothed_quats))
+    
     return smoothed_quats
 
 
-def smooth_tvecs(georef_params):
+def smooth_tvecs(georef_params, df_periods):
 
+    # get tvecs from georef_params
     tvecs = []
-
     for i in range(len(georef_params)):
         tvecs.append(georef_params[i].extrinsic.tvec)
+    tvecs = np.array(tvecs)
 
-    smoothed_tvecs = savgol_filter(tvecs, window_length=9, polyorder=2, axis=0)
+    # initialization of output smoothed tvec
+    smoothed_tvecs = []
+
+    periods = np.unique(df_periods['i_period'])
+
+    for period in periods:
+        # get tvecs in the considered period
+        tvecs_p = tvecs[df_periods['i_period'] == period]
+
+        # Smooth each tvec component
+        try:
+            smoothed_tvecs_p = savgol_filter(tvecs_p, window_length=9, polyorder=1, axis=0)
+        except ValueError:
+            smoothed_tvecs_p = savgol_filter(tvecs_p, window_length=len(tvecs_p), polyorder=1, axis=0)
+
+        smoothed_tvecs.append(smoothed_tvecs_p)
+
+    # concatenate smoothed tvecs
+    smoothed_tvecs = np.concatenate((smoothed_tvecs))
 
     return smoothed_tvecs
 
 
-def smooth_targets_extrinsic(quats, georef_params):
+def smooth_targets_extrinsic(quats, georef_params, df_periods):
     '''
     Smoothing of quaternions and translation vectors
     '''
 
     # smoothing quaternions
-    smoothed_quats = smooth_quats(quats)
+    smoothed_quats = smooth_quats(quats, df_periods)
 
     # convert smoothed quaternions to rvec
     smoothed_rvecs = R.from_quat(smoothed_quats).as_rotvec()
 
     # smoothing tvec
-    smoothed_tvecs = smooth_tvecs(georef_params)
+    smoothed_tvecs = smooth_tvecs(georef_params, df_periods)
 
     # initialize output georef_params_smooth, as a list copy of initial georef_params
     georef_params_smooth = [copy(georef_params[0]) for _ in range(len(georef_params))]
@@ -392,7 +428,7 @@ def get_periods(date, quats):
         merged_brkpts = []
         for b in breakpoints:
             if not merged_brkpts or b - merged_brkpts[-1] > min_gap:
-                merged_brkpts.append(b)
+                merged_brkpts.append(b + 1) # +1 because motion is defined from 1 to n, whereas date is from 0 to to n
         return merged_brkpts
 
     # compute successive angular distances (in radians)
@@ -405,16 +441,23 @@ def get_periods(date, quats):
     breakpts = detect_breakpoints_threshold(ang_d)
 
     # compute sub periods
-    periods = []
+    i_period = []
+
+    # 1st period
     period_0 = date[date < date[breakpts[0]]]
     if len(period_0) > 0:
-        periods.append(period_0)
+        i_period.append(np.ones(len(period_0)) * 0)
+    # intermediate periods
     for i in range(len(breakpts) - 1):
         period_i = date[np.logical_and(date >= date[breakpts[i]], date < date[breakpts[i + 1]])]
-        periods.append(period_i)
+        i_period.append(np.ones(len(period_i)) * (i + 1))
+    # last period
     period_last = date[date >= date[breakpts[-1]]]
     if len(period_last) > 0:
-        periods.append(period_last)
+        i_period.append(np.ones(len(period_last)) * len(breakpts))
+    i_period = np.concatenate((i_period))
+
+    df_period = pd.DataFrame({'date':date, 'i_period':i_period})
 
     # plot breakpoints
     #fig, ax = plt.subplots()
@@ -423,7 +466,7 @@ def get_periods(date, quats):
     #    ax.vlines(breakpoint, np.min(ang_d), np.max(ang_d), color='r')
     #plt.show()
 
-    return periods
+    return df_period
 
 def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts, f_gcps, pgrid, f_lidar, roi_lidar,
                      start, end, scaling_pcent=20):
@@ -647,10 +690,10 @@ def run(f_cam_params, dir_cparams_raw, odir_cparams_smooth, odir_cam_mvts):
     quats = get_quaternions(georef_params)
 
     # get subperiods from large camera movements
-    get_periods(date, quats)
+    df_periods = get_periods(date, quats)
 
     # smooth extrinsic parameters of target images
-    georef_params_smooth = smooth_targets_extrinsic(quats, georef_params)
+    georef_params_smooth = smooth_targets_extrinsic(quats, georef_params, df_periods)
 
     # compute smoothed camera movements
     angles_smooth, position_smooth = compute_cam_mvts(georef_params_smooth)
