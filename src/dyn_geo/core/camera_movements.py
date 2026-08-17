@@ -27,12 +27,12 @@ from dyn_geo.core.projection import project_ls_im
 from dyn_geo.core.camera_extrinsics import read_cam_params
 
 
-def smooth_rvecs(georef_params_upd):
+def smooth_rvecs(georef_params):
 
     # store targets rvec to a list
     rvecs = []
-    for i in range(len(georef_params_upd)):
-        rvecs.append(georef_params_upd[i].extrinsic.rvec.squeeze())
+    for i in range(len(georef_params)):
+        rvecs.append(georef_params[i].extrinsic.rvec.squeeze())
 
     # Initialize the multiple rotations in one Rotation object
     rotations = R.from_rotvec(rvecs)
@@ -58,19 +58,19 @@ def smooth_rvecs(georef_params_upd):
     return smoothed_rvecs
 
 
-def smooth_tvecs(georef_params_upd):
+def smooth_tvecs(georef_params):
 
     tvecs = []
 
-    for i in range(len(georef_params_upd)):
-        tvecs.append(georef_params_upd[i].extrinsic.tvec)
+    for i in range(len(georef_params)):
+        tvecs.append(georef_params[i].extrinsic.tvec)
 
     smoothed_tvecs = savgol_filter(tvecs, window_length=9, polyorder=2, axis=0)
 
     return smoothed_tvecs
 
 
-def smooth_targets_extrinsic(dates, georef_params_upd, f_cam_params):
+def smooth_targets_extrinsic(georef_params, f_cam_params):
     '''
     Cmmothing of rotation and translation vectors
     '''
@@ -79,16 +79,16 @@ def smooth_targets_extrinsic(dates, georef_params_upd, f_cam_params):
     georef_params = Georef.from_param_file(f_cam_params)
 
     # smoothing rvec
-    smoothed_rvecs = smooth_rvecs(georef_params_upd)
+    smoothed_rvecs = smooth_rvecs(georef_params)
 
     # smoothing tvec
-    smoothed_tvecs = smooth_tvecs(georef_params_upd)
+    smoothed_tvecs = smooth_tvecs(georef_params)
 
     # initialize output georef_params_smooth, as a list copy of initial georef_params
-    georef_params_smooth = [copy(georef_params) for _ in range(len(georef_params_upd))]
+    georef_params_smooth = [copy(georef_params) for _ in range(len(georef_params))]
 
-    # save smoothed georef parameters
-    for i in range(len(georef_params_upd)):
+    # save smoothed georef parameters in the dedicated variable 'georef_params_smooth'
+    for i in range(len(georef_params)):
         extrinsic = ExtrinsicMatrix(smoothed_rvecs[i], smoothed_tvecs[i])
         georef_params_smooth[i].extrinsic = extrinsic
 
@@ -141,16 +141,16 @@ def despike_cam_mvts(position_ref, position, threshold_d=0.6):
     return d, valid
 
 
-def keep_valid(date, georef_params_upd, angles, position, valid, outdir_cam_mvts):
+def keep_valid(date, georef_params, angles, position, valid, outdir_cam_mvts):
     date = np.array(date)[valid]
-    georef_params_upd = np.array(georef_params_upd)[valid]
+    georef_params = np.array(georef_params)[valid]
     angles['pitch'] = np.array(angles['pitch'])[valid]
     angles['yaw'] = np.array(angles['yaw'])[valid]
     angles['roll'] = np.array(angles['roll'])[valid]
     position['x'] = np.array(position['x'])[valid]
     position['y'] = np.array(position['y'])[valid]
     position['z'] = np.array(position['z'])[valid]
-    return date, georef_params_upd, angles, position
+    return date, georef_params, angles, position
 
 
 def plot_despiking(date, position, valid, position_init, d_pos, threshold_d, outdir_cam_mvts):
@@ -323,7 +323,7 @@ def plot_cam_mvts(date, angles, position, angles_smooth, position_smooth,
     save(layout)
 
 
-def save_smooth_cam_params(f_cam_params, date, angles_interp, position_interp, odir_cparams_upd_smooth):
+def save_smooth_cam_params(f_cam_params, date, angles_interp, position_interp, odir_cparams_smooth):
 
     # Read initial camara_parameters file
     with open(f_cam_params, 'r') as f:
@@ -338,7 +338,7 @@ def save_smooth_cam_params(f_cam_params, date, angles_interp, position_interp, o
         # save updated camera parameters, changing only extrinsic parameters
         cam_params['extrinsic_parameters']['rvec'] = extr.rvec.reshape(-1).tolist()
         cam_params['extrinsic_parameters']['tvec'] = extr.tvec.reshape(-1).tolist()
-        with open(odir_cparams_upd_smooth / f'camera_parameters_{date[i].strftime('%Y%m%d_%H_%M')}.json', 'w') as f:
+        with open(odir_cparams_smooth / f'camera_parameters_{date[i].strftime('%Y%m%d_%H_%M')}.json', 'w') as f:
             json.dump(cam_params, f, indent=2)
 
 
@@ -373,6 +373,19 @@ def gcps_geo_2pix(f_gcps, georef_params, scaling_percent):
 
     return u, v, z
 
+
+def get_quaternions(georef_params):
+
+    return
+
+def get_periods(georef_params):
+
+    def angular_distance(q1, q2):
+        """Geodesic distance between two unit quaternions, in radians."""
+        dot = np.clip(np.abs(np.dot(q1, q2)), -1.0, 1.0)  # abs handles double-cover
+        return 2 * np.arccos(dot)
+
+    return
 
 def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts, f_gcps, pgrid, f_lidar, roi_lidar,
                      start, end, scaling_pcent=20):
@@ -592,11 +605,14 @@ def run(f_cam_params, dir_cparams_raw, odir_cparams_smooth, odir_cam_mvts):
     # keep only valid data
     date, georef_params, angles, position = keep_valid(date, georef_params, angles, position, valid, odir_cam_mvts)
 
-    # create subperiods from large camera movements
+    # quaternions
+    get_quaternions(georef_params)
 
+    # get subperiods from large camera movements
+    get_periods(georef_params)
 
     # smooth extrinsic parameters of target images
-    georef_params_smooth = smooth_targets_extrinsic(date, georef_params, f_cam_params)
+    georef_params_smooth = smooth_targets_extrinsic(georef_params, f_cam_params)
 
     # compute smoothed camera movements
     angles_smooth, position_smooth = compute_cam_mvts(georef_params_smooth)
