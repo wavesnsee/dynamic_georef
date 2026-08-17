@@ -375,14 +375,55 @@ def get_quaternions(georef_params):
 
     return quats
 
-def get_periods(georef_params):
+def get_periods(date, quats):
 
     def angular_distance(q1, q2):
         """Geodesic distance between two unit quaternions, in radians."""
         dot = np.clip(np.abs(np.dot(q1, q2)), -1.0, 1.0)  # abs handles double-cover
         return 2 * np.arccos(dot)
 
-    return
+    def detect_breakpoints_threshold(motion, k=5.0, min_gap=3):
+        median = np.median(motion)
+        mad = np.median(np.abs(motion - median)) + 1e-9
+        threshold = median + k * mad
+        breakpoints = np.where(motion > threshold)[0]
+
+        # merge breakpoints that are too close together (avoid tiny slivers)
+        merged_brkpts = []
+        for b in breakpoints:
+            if not merged_brkpts or b - merged_brkpts[-1] > min_gap:
+                merged_brkpts.append(b)
+        return merged_brkpts
+
+    # compute successive angular distances (in radians)
+    ang_d = []
+    n = len(quats)
+    for i in range(1, n):
+        ang_d.append(angular_distance(quats[i], quats[i - 1]))
+
+    # detect indices of breakpoints
+    breakpts = detect_breakpoints_threshold(ang_d)
+
+    # compute sub periods
+    periods = []
+    period_0 = date[date < date[breakpts[0]]]
+    if len(period_0) > 0:
+        periods.append(period_0)
+    for i in range(len(breakpts) - 1):
+        period_i = date[np.logical_and(date >= date[breakpts[i]], date < date[breakpts[i + 1]])]
+        periods.append(period_i)
+    period_last = date[date >= date[breakpts[-1]]]
+    if len(period_last) > 0:
+        periods.append(period_last)
+
+    # plot breakpoints
+    #fig, ax = plt.subplots()
+    #ax.plot(ang_d)
+    #for breakpoint in breakpts:
+    #    ax.vlines(breakpoint, np.min(ang_d), np.max(ang_d), color='r')
+    #plt.show()
+
+    return periods
 
 def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts, f_gcps, pgrid, f_lidar, roi_lidar,
                      start, end, scaling_pcent=20):
@@ -606,7 +647,7 @@ def run(f_cam_params, dir_cparams_raw, odir_cparams_smooth, odir_cam_mvts):
     quats = get_quaternions(georef_params)
 
     # get subperiods from large camera movements
-    # get_periods(georef_params)
+    get_periods(date, quats)
 
     # smooth extrinsic parameters of target images
     georef_params_smooth = smooth_targets_extrinsic(quats, georef_params)
