@@ -306,12 +306,12 @@ def plot_cam_mvts(date, angles, position, angles_smooth, position_smooth,
         )
 
         # raw data
-        p.line(date, raw_vals, legend_label=f'{label} ({unit})')
-        p.scatter(date, raw_vals, size=8, marker='circle')
+        p.line(date, raw_vals, color='gray', legend_label=f'{label} ({unit})')
+        p.scatter(date, raw_vals, color='gray', size=6, marker='circle')
 
-        # interpolated data
-        p.line(date, smoothed_vals, color='red', legend_label=f'{label} interp ({unit})')
-        p.scatter(date, smoothed_vals, size=8, color='red', marker='circle')
+        # smoothed data
+        p.line(date, smoothed_vals, color='green', legend_label=f'{label} interp ({unit})')
+        p.scatter(date, smoothed_vals, size=4, color='green', marker='circle')
 
         p.legend.location = 'top_right'
         p.legend.label_text_font_size = '10pt'
@@ -411,6 +411,7 @@ def get_quaternions(georef_params):
 
     return quats
 
+
 def get_periods(date, quats):
 
     def angular_distance(q1, q2):
@@ -467,6 +468,7 @@ def get_periods(date, quats):
     #plt.show()
 
     return df_period
+
 
 def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts, f_gcps, pgrid, f_lidar, roi_lidar,
                      start, end, scaling_pcent=20):
@@ -554,7 +556,7 @@ def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts, f_gcps, pgrid
         line_width=1,
         legend_label="gcps"
     )
-    color_bar = ColorBar(color_mapper=color_mapper)
+    color_bar = ColorBar(color_mapper=color_mapper, title='Elevation (mIGN69)')
     p.add_layout(color_bar, "right")
     p.legend.click_policy = "hide"  # click a legend entry to toggle that series
     p.legend.location = "top_left"
