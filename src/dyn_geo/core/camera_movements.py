@@ -308,7 +308,7 @@ def plot_cam_mvts(date, angles, position, angles_smooth, position_smooth,
         p.scatter(date, raw_vals, color='gray', size=6, marker='circle')
 
         # smoothed data
-        p.line(date, smoothed_vals, color='green', legend_label=f'{label} interp ({unit})')
+        p.line(date, smoothed_vals, color='green', legend_label=f'{label} smooth ({unit})')
         p.scatter(date, smoothed_vals, size=4, color='green', marker='circle')
 
         p.legend.location = 'top_right'
@@ -343,7 +343,7 @@ def plot_cam_mvts(date, angles, position, angles_smooth, position_smooth,
     save(layout)
 
 
-def save_smooth_cam_params(f_cam_params, date, angles_interp, position_interp, odir_cparams_smooth):
+def save_smooth_cam_params(f_cam_params, date, angles_smooth, position_smooth, odir_cparams_smooth):
 
     # Read initial camara_parameters file
     with open(f_cam_params, 'r') as f:
@@ -352,8 +352,8 @@ def save_smooth_cam_params(f_cam_params, date, angles_interp, position_interp, o
     for i in range(len(date)):
 
         # compute extrinsic parameters from origin and beachcam angles
-        extr = ExtrinsicMatrix.from_origin_beachcam_angles([position_interp['x'][i], position_interp['y'][i], position_interp['z'][i]],
-                                                           [angles_interp['yaw'][i], angles_interp['pitch'][i], angles_interp['roll'][i]])
+        extr = ExtrinsicMatrix.from_origin_beachcam_angles([position_smooth['x'][i], position_smooth['y'][i], position_smooth['z'][i]],
+                                                           [angles_smooth['yaw'][i], angles_smooth['pitch'][i], angles_smooth['roll'][i]])
 
         # save updated camera parameters, changing only extrinsic parameters
         cam_params['extrinsic_parameters']['rvec'] = extr.rvec.reshape(-1).tolist()
@@ -715,7 +715,7 @@ def run(f_cam_params, dir_cparams_raw, odir_cparams_smooth, odir_cam_mvts, smoot
     # compute smoothed camera movements
     angles_smooth, position_smooth = compute_cam_mvts(georef_params_smooth)
 
-    # plot camera movements raw and interpolated
+    # plot camera movements raw and smoothed
     plot_cam_mvts(date, angles, position,
                   angles_smooth, position_smooth,
                   angles_init, position_init,
