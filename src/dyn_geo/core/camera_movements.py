@@ -425,14 +425,14 @@ def get_quaternions(georef_params):
     return quats
 
 
-def get_periods(date, quats):
+def get_periods(date, quats, outdir_cam_mvts):
 
     def angular_distance(q1, q2):
         """Geodesic distance between two unit quaternions, in radians."""
         dot = np.clip(np.abs(np.dot(q1, q2)), -1.0, 1.0)  # abs handles double-cover
         return 2 * np.arccos(dot)
 
-    def detect_breakpoints_threshold(motion, k=5.0, min_gap=3):
+    def detect_breakpoints_threshold(motion, k=10.0, min_gap=3):
         median = np.median(motion)
         mad = np.median(np.abs(motion - median)) + 1e-9
         threshold = median + k * mad
@@ -443,7 +443,7 @@ def get_periods(date, quats):
         for b in breakpoints:
             if not merged_brkpts or b - merged_brkpts[-1] > min_gap:
                 merged_brkpts.append(b + 1) # +1 because motion is defined from 1 to n, whereas date is from 0 to to n
-        return merged_brkpts
+        return merged_brkpts, threshold
 
     # compute successive angular distances (in radians)
     ang_d = []
@@ -452,7 +452,7 @@ def get_periods(date, quats):
         ang_d.append(angular_distance(quats[i], quats[i - 1]))
 
     # detect indices of breakpoints
-    breakpts = detect_breakpoints_threshold(ang_d)
+    breakpts, threshold = detect_breakpoints_threshold(ang_d)
 
     # compute sub periods
     i_period = []
@@ -474,11 +474,38 @@ def get_periods(date, quats):
     df_period = pd.DataFrame({'date':date, 'i_period':i_period})
 
     # plot breakpoints
-    #fig, ax = plt.subplots()
-    #ax.plot(ang_d)
-    #for breakpoint in breakpts:
-    #    ax.vlines(breakpoint, np.min(ang_d), np.max(ang_d), color='r')
-    #plt.show()
+    p = figure(
+        x_axis_type='datetime',
+        title="Angular distance",
+        x_axis_label='Date',
+        y_axis_label='Angular distance (radians)',
+        height=500,
+        sizing_mode='stretch_width'
+    )
+    # Main series
+    p.line(date[1:], ang_d, line_width=1, color='navy')
+    # Threshold line — added once, outside the loop
+    p.line(
+        [np.min(date), np.max(date)], [threshold, threshold],
+        color='forestgreen', line_width=1.5, legend_label='threshold',
+    )
+    # Breakpoints — reusing the same legend_label merges entries automatically
+    for breakpoint in breakpts:
+        p.scatter(
+            date[breakpoint], ang_d[breakpoint - 1],
+            marker='square', size=6, color='red',
+            legend_label="breakpoints' angular distance",
+        )
+        p.line(
+            [date[breakpoint], date[breakpoint]], [np.min(ang_d), np.max(ang_d)],
+            color='red', line_width=1,
+            legend_label="breakpoints' dates",
+        )
+    p.grid.visible = True
+    p.legend.location = "top_left"
+    p.legend.click_policy = "hide"  # optional: click legend entries to toggle visibility
+    output_file(outdir_cam_mvts / 'periods_from_successive_angular_distances.html', title='SUBPERIODS OF CAMERAS MOVEMENTS')
+    save(p)
 
     return df_period
 
@@ -722,7 +749,7 @@ def run(f_cam_params, dir_cparams_raw, odir_cparams_smooth, odir_cam_mvts, smoot
     quats = get_quaternions(georef_params)
 
     # get subperiods from large camera movements
-    df_periods = get_periods(date, quats)
+    df_periods = get_periods(date, quats, odir_cam_mvts)
 
     # smooth extrinsic parameters of target images
     georef_params_smooth = smooth_targets_extrinsic(quats, georef_params, df_periods, smooth_w)
