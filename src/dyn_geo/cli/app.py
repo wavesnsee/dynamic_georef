@@ -38,6 +38,7 @@ class Plot3d(BaseModel):
     only_at_noon: bool
 
 class AppConfig(BaseModel):
+    cam_id: int
     ref_img: RefImg
     target_imgs: TargetImgs
     f_cam_params: Path

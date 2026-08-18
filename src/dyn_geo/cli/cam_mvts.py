@@ -21,11 +21,13 @@ def main(conf):
     # compute camera smooth extrinsics
     if conf.compute_smooth_extrinsic:
         print('compute camera movements and smooth extrinsics')
+
         camera_movements.run(conf.f_cam_params,
                              paths.cam_params_raw,
                              paths.cam_params_smooth,
                              paths.cam_mvts,
-                             conf.smooth_w
+                             conf.smooth_w,
+                             conf.cam_id
                              )
 
 def plot_3d(conf):

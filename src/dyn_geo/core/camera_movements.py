@@ -22,6 +22,7 @@ from dyn_geo.core import img
 from dyn_geo.core.lidar import lidar_geo2pix
 from dyn_geo.core.projection import project_ls_im
 from dyn_geo.core.camera_extrinsics import read_cam_params
+from dyn_geo.core.camera import get_start_date
 
 
 def smooth_quats(quats, df_periods, smooth_w):
@@ -343,11 +344,18 @@ def plot_cam_mvts(date, angles, position, angles_smooth, position_smooth,
     save(layout)
 
 
-def save_smooth_cam_params(f_cam_params, date, angles_smooth, position_smooth, odir_cparams_smooth):
+def save_smooth_cam_params(f_cam_params, date, angles_smooth, position_smooth, odir_cparams_smooth, cam_id):
 
     # Read initial camara_parameters file
     with open(f_cam_params, 'r') as f:
         cam_params = json.load(f)
+
+    # read start_date of camera
+    start_date = get_start_date(cam_id)
+    plt.plot(np.arange(15))
+    plt.show()
+    import pdb
+    pdb.set_trace()
 
     for i in range(len(date)):
 
@@ -682,8 +690,9 @@ def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts, f_gcps, pgrid
     return
 
 
-def run(f_cam_params, dir_cparams_raw, odir_cparams_smooth, odir_cam_mvts, smooth_w):
-
+def run(f_cam_params, dir_cparams_raw, odir_cparams_smooth, odir_cam_mvts, smooth_w, cam_id):
+    plt.plot(np.arange(15))
+    plt.show()
     # compute camera position from initial georef
     angles_init, position_init = compute_cam_mvts([Georef.from_param_file(f_cam_params)])
 
@@ -722,4 +731,4 @@ def run(f_cam_params, dir_cparams_raw, odir_cparams_smooth, odir_cam_mvts, smoot
                   odir_cam_mvts)
 
     # compute and save smoothed camera parameters
-    save_smooth_cam_params(f_cam_params, date, angles_smooth, position_smooth, odir_cparams_smooth)
+    save_smooth_cam_params(f_cam_params, date, angles_smooth, position_smooth, odir_cparams_smooth, cam_id)
