@@ -21,6 +21,7 @@ dependencies = [
     "scipy>=1.18.0",
     "topo-an",
     "typer>=0.26.7",
+    "wns-api-clients",
 ]
 
 [build-system]
@@ -31,6 +32,7 @@ build-backend = "uv_build"
 roi-editor = { git = "ssh://git@github.com/wavesnsee/roi_editor", rev = "main" }
 georef = { git = "ssh://git@github.com/wavesnsee/georef", rev = "main" }
 topo-an = { git = "ssh://git@github.com/wavesnsee/topo_analysis", rev = "main" }
+wns-api-clients = { git = "ssh://git@github.com/wavesnsee/wns_api_clients", rev = "main" }
 
 [project.scripts]
 dyn_geo = "dyn_geo.cli.app:app"
