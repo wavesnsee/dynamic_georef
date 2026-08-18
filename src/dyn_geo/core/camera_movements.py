@@ -351,21 +351,28 @@ def save_smooth_cam_params(f_cam_params, date, angles_smooth, position_smooth, o
         cam_params = json.load(f)
 
     # read start_date of camera
-    start_date = get_start_date(cam_id)
-    plt.plot(np.arange(15))
-    plt.show()
-    import pdb
-    pdb.set_trace()
+    start_cam = get_start_date(cam_id)
 
-    for i in range(len(date)):
+    for i in range(len(date) -1):
 
         # compute extrinsic parameters from origin and beachcam angles
         extr = ExtrinsicMatrix.from_origin_beachcam_angles([position_smooth['x'][i], position_smooth['y'][i], position_smooth['z'][i]],
                                                            [angles_smooth['yaw'][i], angles_smooth['pitch'][i], angles_smooth['roll'][i]])
 
-        # save updated camera parameters, changing only extrinsic parameters
+        # save extrinsic parameters in camera parameters
         cam_params['extrinsic_parameters']['rvec'] = extr.rvec.reshape(-1).tolist()
         cam_params['extrinsic_parameters']['tvec'] = extr.tvec.reshape(-1).tolist()
+
+        # save start_date and end_date in camera parameters
+        if i == 0:
+            start_date = start_cam
+        else:
+            start_date = date[i - 1] + (date[i] - date[i -1]) / 2
+        end_date = date[i] + (date[i + 1] - date[i]) / 2
+        cam_params['date_start'] = start_date.strftime('%Y-%m-%dT%H:%M:%SZ')
+        cam_params['date_end'] = end_date.strftime('%Y-%m-%dT%H:%M:%SZ')
+
+        # save to json
         with open(odir_cparams_smooth / f'camera_parameters_{date[i].strftime('%Y%m%d_%H_%M')}.json', 'w') as f:
             json.dump(cam_params, f, indent=2)
 
@@ -691,8 +698,7 @@ def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts, f_gcps, pgrid
 
 
 def run(f_cam_params, dir_cparams_raw, odir_cparams_smooth, odir_cam_mvts, smooth_w, cam_id):
-    plt.plot(np.arange(15))
-    plt.show()
+
     # compute camera position from initial georef
     angles_init, position_init = compute_cam_mvts([Georef.from_param_file(f_cam_params)])
 
