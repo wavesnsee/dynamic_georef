@@ -718,7 +718,8 @@ def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts, f_gcps, pgrid
         row(column(div, column(slider, slider_label)), column(p, p2))
     )
 
-    output_file(odir_cam_mvts / 'camera_movements_3d.html', title='3D CAM MOVEMENTS')
+    name_html = f'camera_movements_3d_{t_im[0].split(' ')[0].replace('-','')}_to_{t_im[-1].split(' ')[0].replace('-','')}.html'
+    output_file(odir_cam_mvts / name_html, title='3D CAM MOVEMENTS')
     save(layout)
 
     return
