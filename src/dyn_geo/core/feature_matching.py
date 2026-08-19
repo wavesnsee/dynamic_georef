@@ -23,7 +23,10 @@ def set_matcher(type_matching):
 
 
 def get_matching_pts(matcher, des_ref, des):
-    raw_matches = matcher.knnMatch(des_ref, des, k=2)
+    try:
+        raw_matches = matcher.knnMatch(des_ref, des, k=2)
+    except:
+        raw_matches = []
     return raw_matches
 
 
@@ -188,11 +191,12 @@ def run(ref_fn, ref_f_rois, target_imgs_dir, start, end, f_cam_params, type_matc
             kp, des = sift.detectAndCompute(im_gray, masks_target[i])
             # get matching keypoints
             raw_matches = get_matching_pts(matcher, des_ref[i], des)
-            # filter matching keypoints by a distance criteria
-            good = [m for m, n in raw_matches if m.distance < 0.75 * n.distance]
-            # append src and dst pts
-            dst_pts.append(np.float32([kps_ref[i][m.queryIdx].pt for m in good]).reshape(-1, 1, 2))
-            src_pts.append(np.float32([kp[m.trainIdx].pt for m in good]).reshape(-1, 1, 2))
+            if len(raw_matches) > 0:
+                # filter matching keypoints by a distance criteria
+                good = [m for m, n in raw_matches if m.distance < 0.75 * n.distance]
+                # append src and dst pts
+                dst_pts.append(np.float32([kps_ref[i][m.queryIdx].pt for m in good]).reshape(-1, 1, 2))
+                src_pts.append(np.float32([kp[m.trainIdx].pt for m in good]).reshape(-1, 1, 2))
 
         # combine multiple arrays of shape (n, 1, 2) into a single array of shape (total_n, 1, 2)
         dst_pts = np.vstack(dst_pts)
