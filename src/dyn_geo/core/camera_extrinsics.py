@@ -41,7 +41,7 @@ def plot_gcps_ref_target(gcps_uv, gcps_uv_warped, f_cam_params, target_img_fn, r
 
 
 def compute_targets_extrinsic(dir_h, f_gcps, f_cam_params, target_imgs_dir, ref_img_fn, dir_gcps, start, end,
-                              outdir_cam_params_upd, plot_gcps=True):
+                              outdir_cam_params_upd, plot_gcps=False):
 
     # list of homography matrixes
     # ls_h = sorted(dir_h.glob('*.npy'))
@@ -134,6 +134,12 @@ def read_cam_params(dir_cparams, start=None, end=None):
         date = img.get_date(f)
         if (start is None) and (end is None):
             gp = Georef.from_param_file(f)
+            # from pympler import asizeof
+            # for k, v in vars(gp).items():
+            #     print(k, type(v), asizeof.asizeof(v) / 1e6, "MB")
+            # rm arrays of distorsion (33MB each !)
+            gp._undistort_map_x = None
+            gp._undistort_map_y = None
             georef_params.append(gp)
             t_cparams.append(date)
         else:
