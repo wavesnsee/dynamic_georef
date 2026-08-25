@@ -737,7 +737,7 @@ def run(f_cam_params, dir_cparams_raw, odir_cparams_smooth, odir_cam_mvts, smoot
     angles, position = compute_cam_mvts(georef_params)
 
     # Despike camera movements
-    threshold_d = 0.25 # in cm
+    threshold_d = 0.15 # in m
     d_pos, valid = despike_cam_mvts(position_init, position, threshold_d=threshold_d)
 
     # plot despiking
