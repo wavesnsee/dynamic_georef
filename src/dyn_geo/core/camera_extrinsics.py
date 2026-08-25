@@ -145,6 +145,8 @@ def read_cam_params(dir_cparams, start=None, end=None):
         else:
             if (date >= start) and (date <= end):
                 gp = Georef.from_param_file(f)
+                gp._undistort_map_x = None
+                gp._undistort_map_y = None
                 georef_params.append(gp)
                 t_cparams.append(date)
 
