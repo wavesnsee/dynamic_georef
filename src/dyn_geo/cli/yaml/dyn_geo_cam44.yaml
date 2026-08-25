@@ -1,0 +1,34 @@
+cam_id: 44
+ref_img:
+  fname: '/data/workspaces/florent/Projects/Etretat/Etretat_central2/images/raw/A_Etretat_central2_2fps_600s_20251015_15_00.jpg'
+  f_rois_fm: '/data/workspaces/florent/Projects/Etretat/Etretat_central2/info/dyn_georef/rois/A_Etretat_central2_2fps_600s_20251015_15_00_rois_fm.json'
+  f_rois_edges: '/data/workspaces/florent/Projects/Etretat/Etretat_central2/info/dyn_georef/rois/A_Etretat_central2_2fps_600s_20251015_15_00_rois_edges.json'
+  f_gcps: '/data/workspaces/florent/Projects/Etretat/Geodesie/gcps_2025/gcps_CAM44.csv'
+target_imgs:
+  dir: '/data/workspaces/florent/Projects/Etretat/Etretat_central2/images/raw/'
+f_cam_params: '/data/workspaces/florent/Projects/Etretat/Etretat_central2/info/camera_parameters_cam44.json'
+matching: 'flann' # bfmatcher or flann
+pgrid:
+  xmin: -20
+  xmax: 30
+  ymin: 15
+  ymax: 50
+  res: 0.20
+  z: 9.0
+start: 2026-03-01 00:00 # start for computation of feature matching, and raw extrinsic
+end: 2026-04-30 20:00 # end for computation of feature matching, and raw extrinsic
+smooth_w: '3D' # smoothing window used in rolling mean of quaternions and tvecs' components
+outdir: '/data/workspaces/florent/Projects/Etretat/Etretat_central2/info/dyn_georef/'
+plot3d:
+  f_lidar: '/data/workspaces/florent/Projects/Etretat/lidarhd/LHD_FXX_0497_0498_6960_6961_LAMB93_IGN69.tif'
+  roi_lidar: '/data/workspaces/florent/Projects/Etretat/lidarhd/roi_lidar_for_cam44_mvts.gpkg'
+  start: 2026-03-10 00:00 # start for plot3d
+  end: 2026-04-20 20:00 # end for plot3d
+  only_at_noon: True
+compute_fm: False
+plot_fm: False
+acc_metrics: False
+compute_raw_extrinsic: False
+compute_smooth_extrinsic: True
+plot_cam_3d_mvts: False
+warp: False
