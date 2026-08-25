@@ -517,28 +517,7 @@ def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts, f_gcps, pgrid
     '''
 
     # load georef parameters for each target image
-    t_cparams, georef_params = read_cam_params(odir_cparams_smooth, start, end)
-
-    # Filter to keep only the entry closest to noon each day
-    if only_at_noon:
-        # Convert to pandas Series for easy groupby operations
-        ts = pd.Series(range(len(t_cparams)), index=t_cparams)
-
-        # Compute seconds from midnight for each timestamp
-        seconds_from_midnight = ts.index.map(lambda t: t.hour * 3600 + t.minute * 60 + t.second)
-
-        # Compute absolute difference from noon (12:00 = 43200 seconds)
-        diff_from_noon = pd.Series(np.abs(seconds_from_midnight - 43200), index=ts.index)
-
-        # For each day, find the index with the smallest difference from noon
-        noon_indices = diff_from_noon.groupby(ts.index.date).idxmin()
-
-        # Convert timestamp indices back to integer positions for list indexing
-        noon_indices = [ts.index.get_loc(idx) for idx in noon_indices]
-
-        # Filter t_cparams and georef_params
-        t_cparams = [t_cparams[i] for i in noon_indices]
-        georef_params = [georef_params[i] for i in noon_indices]
+    t_cparams, georef_params = read_cam_params(odir_cparams_smooth, start, end, only_at_noon=only_at_noon)
 
     # list of uv lidar
     u, v, z = lidar_geo2pix(f_lidar, roi_lidar, odir_cam_mvts, georef_params, scaling_pcent)

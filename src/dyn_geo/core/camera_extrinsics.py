@@ -120,35 +120,59 @@ def compute_targets_extrinsic(dir_h, f_gcps, f_cam_params, target_imgs_dir, ref_
     return
 
 
-def read_cam_params(dir_cparams, start=None, end=None):
+def read_cam_params(dir_cparams, start=None, end=None, only_at_noon=False):
 
     # initialize georef_params and date
     georef_params = []
     t_cparams = []
 
     # list of json camera parameters
-    ls_cparams = sorted(dir_cparams.glob('*.json'))
+    ls_cparams_all = sorted(dir_cparams.glob('*.json'))
+
+    # filter list of camera parameters
+    mask_filter = []
+    for f in ls_cparams_all:
+        date = img.get_date(f)
+        t_cparams.append(date)
+        if (start is None) and (end is None):
+            mask_filter.append(True)
+        else:
+            if (date >= start) and (date <= end):
+                mask_filter.append(True)
+            else:
+                mask_filter.append(False)
+    ls_cparams = np.array(ls_cparams_all)[mask_filter]
+    t_cparams = np.array(t_cparams)[mask_filter]
+
+    # get camera parameters only_at_noon if so
+    if only_at_noon:
+
+        # Convert to pandas Series for easy groupby operations
+        ts = pd.Series(range(len(t_cparams)), index=t_cparams)
+
+        # Compute seconds from midnight for each timestamp
+        seconds_from_midnight = ts.index.map(lambda t: t.hour * 3600 + t.minute * 60 + t.second)
+
+        # Compute absolute difference from noon (12:00 = 43200 seconds)
+        diff_from_noon = pd.Series(np.abs(seconds_from_midnight - 43200), index=ts.index)
+
+        # For each day, find the index with the smallest difference from noon
+        noon_indices = diff_from_noon.groupby(ts.index.date).idxmin()
+
+        # Convert timestamp indices back to integer positions for list indexing
+        noon_indices = [ts.index.get_loc(idx) for idx in noon_indices]
+
+        # Filter t_cparams and georef_params
+        ls_cparams = [ls_cparams[i] for i in noon_indices]
+        t_cparams = [t_cparams[i] for i in noon_indices]
 
     # read camera parameters
     for f in ls_cparams:
-        date = img.get_date(f)
-        if (start is None) and (end is None):
-            gp = Georef.from_param_file(f)
-            # from pympler import asizeof
-            # for k, v in vars(gp).items():
-            #     print(k, type(v), asizeof.asizeof(v) / 1e6, "MB")
-            # rm arrays of distorsion (33MB each !)
+        gp = Georef.from_param_file(f)
+        if not only_at_noon:
             gp._undistort_map_x = None
             gp._undistort_map_y = None
-            georef_params.append(gp)
-            t_cparams.append(date)
-        else:
-            if (date >= start) and (date <= end):
-                gp = Georef.from_param_file(f)
-                gp._undistort_map_x = None
-                gp._undistort_map_y = None
-                georef_params.append(gp)
-                t_cparams.append(date)
+        georef_params.append(gp)
 
     return t_cparams, georef_params
 
