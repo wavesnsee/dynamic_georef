@@ -454,22 +454,26 @@ def get_periods(date, quats, outdir_cam_mvts):
     # detect indices of breakpoints
     breakpts, threshold = detect_breakpoints_threshold(ang_d)
 
-    # compute sub periods
-    i_period = []
+    if len(breakpts) == 0:
+        i_period = [0 for i in range(len(date))]
 
-    # 1st period
-    period_0 = date[date < date[breakpts[0]]]
-    if len(period_0) > 0:
-        i_period.append(np.ones(len(period_0)) * 0)
-    # intermediate periods
-    for i in range(len(breakpts) - 1):
-        period_i = date[np.logical_and(date >= date[breakpts[i]], date < date[breakpts[i + 1]])]
-        i_period.append(np.ones(len(period_i)) * (i + 1))
-    # last period
-    period_last = date[date >= date[breakpts[-1]]]
-    if len(period_last) > 0:
-        i_period.append(np.ones(len(period_last)) * len(breakpts))
-    i_period = np.concatenate((i_period))
+    else:
+        # compute sub periods
+        i_period = []
+
+        # 1st period
+        period_0 = date[date < date[breakpts[0]]]
+        if len(period_0) > 0:
+            i_period.append(np.ones(len(period_0)) * 0)
+        # intermediate periods
+        for i in range(len(breakpts) - 1):
+            period_i = date[np.logical_and(date >= date[breakpts[i]], date < date[breakpts[i + 1]])]
+            i_period.append(np.ones(len(period_i)) * (i + 1))
+        # last period
+        period_last = date[date >= date[breakpts[-1]]]
+        if len(period_last) > 0:
+            i_period.append(np.ones(len(period_last)) * len(breakpts))
+        i_period = np.concatenate((i_period))
 
     df_period = pd.DataFrame({'date':date, 'i_period':i_period})
 
