@@ -33,7 +33,7 @@ def read(f, f_cam_params):
     im = read_jpeg(f)
 
     # convert to gray
-    im_gray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
+    im_gray = cv2.cvtColor(im, cv2.COLOR_RGB2GRAY)
 
     # read camera georef parameters
     georef_params = Georef.from_param_file(f_cam_params)
