@@ -63,8 +63,19 @@ def compute_targets_extrinsic(dir_h, f_gcps, f_cam_params, target_imgs_dir, ref_
     # read gcps file
     df = pd.read_csv(f_gcps)
 
-    # extract gcps pixel coordinates
+    # extract gcps uv (pixel) coordinates
     gcps_uv = df[['U', 'V']].to_numpy()
+
+    # camera matrix
+    camera_matrix = georef_params.intrinsic_parameters.camera_matrix
+
+    # distort gcps uv
+    dist_coeffs = georef_params.distortion_coefficients.array
+    gcps_uv = cv2.undistortPoints(gcps_uv.reshape(-1, 1, 2), camera_matrix,
+                                  dist_coeffs, P=camera_matrix).reshape(-1, 2)
+
+    # zero distorsion coefficients
+    zero_dist_coeffs = np.zeros_like(dist_coeffs)
 
     # compute gcps geo coordinates in local srs
     gcps_xyz = df[['easting', 'northing', 'elevation']].to_numpy().T
@@ -95,8 +106,8 @@ def compute_targets_extrinsic(dir_h, f_gcps, f_cam_params, target_imgs_dir, ref_
         # compute dynamic georef from warped gcps
         ret, rvec, tvec, inliers = cv2.solvePnPRansac(gcps_xyz.astype(np.float32),
                                                       gcps_uv_warped.astype(np.float32),
-                                                      georef_params.intrinsic_parameters.camera_matrix,
-                                                      georef_params.distortion_coefficients.array,
+                                                      camera_matrix,
+                                                      zero_dist_coeffs,
                                                       rvec=None,
                                                       tvec=None,
                                                       iterationsCount=50000,
