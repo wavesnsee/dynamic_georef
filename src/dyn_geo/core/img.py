@@ -1,5 +1,7 @@
 import cv2
 import json
+
+import matplotlib.pyplot as plt
 from dateutil import parser
 import numpy as np
 from georef.operators import Georef

@@ -8,7 +8,7 @@ from pydantic import BaseModel
 
 import typer
 
-from dyn_geo.cli import fm, accuracy, warp, cam_mvts
+from dyn_geo.cli import fm, h, accuracy, warp, cam_mvts
 
 app = typer.Typer(no_args_is_help=True)
 
@@ -43,6 +43,7 @@ class AppConfig(BaseModel):
     target_imgs: TargetImgs
     f_cam_params: Path
     matching: str
+    roi_low_distort: Path
     pgrid: ProjectionGrid
     start: datetime
     end: datetime
@@ -51,6 +52,7 @@ class AppConfig(BaseModel):
     plot3d: Plot3d
     compute_fm: bool
     plot_fm: bool
+    compute_h: bool
     acc_metrics: bool
     compute_raw_extrinsic: bool
     compute_smooth_extrinsic: bool
@@ -85,6 +87,11 @@ def main(
         if conf.compute_fm:
             print('run feature matching and save Homography transforms')
             fm.main(conf)
+
+        # compute and save homography transforms
+        if conf.compute_h:
+            print('compute and save save Homography transforms')
+            h.main(conf)
 
         # Plot feature matching
         if conf.plot_fm:

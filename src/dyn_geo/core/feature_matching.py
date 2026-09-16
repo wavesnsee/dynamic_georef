@@ -30,7 +30,7 @@ def get_matching_pts(matcher, des_ref, des):
     return raw_matches
 
 
-def save_matches(src_pts, dst_pts, inlier_mask, outdir, stem):
+def save_matches(src_pts, dst_pts, inlier_mask, dir_matches, stem):
     dst_pts = np.squeeze(dst_pts)
     src_pts = np.squeeze(src_pts)
     inlier_mask = np.squeeze(inlier_mask)
@@ -45,8 +45,18 @@ def save_matches(src_pts, dst_pts, inlier_mask, outdir, stem):
 
     # Save to CSV
     name = stem + '.csv'
-    df.to_csv(outdir / name, index=False)
+    df.to_csv(dir_matches / name, index=False)
     return
+
+
+def read_matches(dir_matches):
+
+    matches = []
+    ls_csv = sorted(dir_matches.glob('*.csv'))
+    for f in ls_csv:
+        matches.append(pd.read_csv(f))
+
+    return matches
 
 
 def save_h(H, outdir, stem):
@@ -209,8 +219,7 @@ def run(ref_fn, ref_f_rois, target_imgs_dir, start, end, f_cam_params, type_matc
         save_matches(src_pts, dst_pts, inlier_mask, path.matches_data, f.stem)
 
         # save homography
-        save_h(H, path.h, f.stem)
-
+        # save_h(H, path.h, f.stem)
 
         # if ecc:
         #     # ECC
