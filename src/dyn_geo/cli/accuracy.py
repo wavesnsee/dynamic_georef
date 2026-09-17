@@ -5,10 +5,10 @@ def main(conf):
 
     path = Paths(conf.outdir, conf.matching)
 
-    accuracy_metrics.run(path.matches_data,
+    accuracy_metrics.run(path.matches_data_filtered,
                          path.h,
-                         conf.ref_img.f_rois_edges,
                          path.acc_metrics,
                          conf.ref_img.fname,
-                         conf.target_imgs.dir
+                         conf.target_imgs.dir,
+                         conf.f_cam_params,
     )

@@ -1,18 +1,14 @@
-import pandas as pd
-import numpy as np
 import matplotlib.pyplot as plt
+import pandas as pd
 from bokeh.plotting import figure, save, output_file
 from bokeh.models import Range1d, RangeTool
 from bokeh.layouts import column
 from bokeh.models import Div
 from matplotlib.path import Path
-from skimage.metrics import structural_similarity as ssim
-
-from dyn_geo.core import img
-from dyn_geo.core.mask import masks_from_rois
-
 import numpy as np
 import cv2
+
+from dyn_geo.core import img
 
 
 def get_n_matching_pts(ls):
@@ -96,28 +92,19 @@ def reprojection_error(
         "rmse": rmse,
     }
 
-def compute_error_metrics(
+def compute_err_metrics(
         ref_fname: Path,
         target_imgs_dir: Path,
         dir_h: Path,
-        ref_f_rois: Path
+        f_cam_params: Path
 ):
 
-    # initialize psnr and ssi lists
-    psnr = []
+    # initialization
     t = []
-    ssi = []
     phase_res = []
-    edge_score = []
 
     # read ref im
-    im_ref = cv2.imread(ref_fname)
-    im_ref_gray = cv2.cvtColor(im_ref, cv2.COLOR_BGR2GRAY)
-    h, w = im_ref.shape[0:2]
-
-    # get masks from rois that were defined on ref image
-    masks, mask_ref = masks_from_rois(ref_f_rois, (h, w))
-    mask_ref = (mask_ref / 255).astype(np.uint8)
+    im_ref, im_ref_gray, h, w = img.read_im(ref_fname, f_cam_params)
 
     # list of homography matrixes' files
     ls = sorted(dir_h.glob('*.npy'))
@@ -128,8 +115,7 @@ def compute_error_metrics(
         H = np.load(f_h)
 
         # read target im
-        im = cv2.imread(target_imgs_dir / (f_h.stem + '.jpg'))
-        im_gray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
+        im, im_gray, _, _ = img.read_im(target_imgs_dir / (f_h.stem + '.jpg'), f_cam_params)
 
         # warp im
         warped_im = cv2.warpPerspective(im, H, (w, h))
@@ -143,25 +129,13 @@ def compute_error_metrics(
         shift_px, response = phase_residual(im_ref_gray, warped_im_gray)
         phase_res.append(shift_px)
 
-        # edge score
-        score, e1, e2 = edge_alignment_score(im_ref_gray, warped_im_gray, mask=mask_ref)
-        edge_score.append(score)
-
-        # Peak Signal-to-Noise Ratio
-        psnr.append(cv2.PSNR(im_ref, warped_im))
-
         # Structural Similarity Index
-        # tester des methodes plus robustes (voir partie "Deep Learning-Based Approaches"):
+        # tester des methodes plus robustes que skimage.metrics import structural_similarity as ssim
+        # (voir partie "Deep Learning-Based Approaches"):
         # https://medium.com/scrapehero/exploring-image-similarity-approaches-in-python-b8ca0a3ed5a3
 
-        try:
-            ssim_score, diff = ssim(im_ref_gray, warped_im_gray, full=True, data_range=255)
-            ssim_score = np.mean(diff[mask_ref==1])
-            ssi.append(ssim_score)
-        except:
-            ssi.append(None)
 
-    return t, psnr, ssi, phase_res, edge_score
+    return t, phase_res
 
 
 def phase_residual(ref_gray, warped_gray):
@@ -173,29 +147,7 @@ def phase_residual(ref_gray, warped_gray):
     return shift_px, response  # bad if shift_px > 1–2px or response < 0.05
 
 
-def edge_alignment_score(img1, img2, mask=None):
-
-    e1 = img.edges(img1)
-    e2 = img.edges(img2)
-
-    if mask is not None:
-        e1, e2 = e1 * mask, e2 * mask
-
-    # Dilate to allow sub-pixel tolerance
-    e1d = cv2.dilate(e1, np.ones((3,3)))
-    e2d = cv2.dilate(e2, np.ones((3,3)))
-    # plt.imshow(e1d)
-    # plt.figure()
-    # plt.imshow(e2d)
-    # plt.show()
-    recall    = (e1 * e2d).sum() / (e1.sum() + 1e-6)
-    precision = (e2 * e1d).sum() / (e2.sum() + 1e-6)
-
-    return 2 * recall * precision / (recall + precision + 1e-6), e1, e2  # F1
-
-
-
-def run(dir_matches_data, dir_h, ref_f_rois_edges, dir_acc_metrics, ref_fname, target_imgs_dir):
+def run(dir_matches_data, dir_h, dir_acc_metrics, ref_fname, target_imgs_dir, f_cam_params):
 
     # list of csv matching points data files
     ls = sorted(dir_matches_data.glob('*.csv'))
@@ -207,13 +159,10 @@ def run(dir_matches_data, dir_h, ref_f_rois_edges, dir_acc_metrics, ref_fname, t
     errors = reprojection_error(ls, dir_h)
 
     # Error metrics between ref image and target images
-    t_error_metrics, psnr, ssi, phase_res, edge_score = compute_error_metrics(ref_fname,
-                                                             target_imgs_dir,
-                                                             dir_h,
-                                                             ref_f_rois_edges)
+    t_error_metrics, phase_res = compute_err_metrics(ref_fname, target_imgs_dir, dir_h, f_cam_params)
 
     # Create a global title using a Div
-    global_title = Div(text="<h1>Accuracy metrics</h1>", sizing_mode='stretch_width')
+    global_title = Div(text="<h1>Homography accuracy metrics</h1>", sizing_mode='stretch_width')
 
     # Range1d objects to share the same ranges between p1 and p2
     x_range = Range1d(min(t), max(t))
@@ -235,20 +184,6 @@ def run(dir_matches_data, dir_h, ref_f_rois_edges, dir_acc_metrics, ref_fname, t
                 x_range=x_range)
     p3.line(t_error_metrics, phase_res, legend_label="Phase residual", line_color="black", line_width=2)
 
-    p4 = figure(sizing_mode='stretch_width', height=plot_h, title="edge alignment score",
-                x_range=x_range)
-    p4.line(t_error_metrics, edge_score, legend_label="Edge alignment score", line_color="black", line_width=2)
-
-    p5 = figure(sizing_mode='stretch_width', height=plot_h, title="Peak Signal-to-Noise Ratio",
-                x_range=x_range)
-    p5.line(t_error_metrics, psnr, legend_label="psnr", line_color="black", line_width=2)
-    p5.yaxis.axis_label = 'psnr'
-
-    p6 = figure(sizing_mode='stretch_width', height=plot_h, title="Structural_similarity index",
-                x_range=x_range)
-    p6.line(t_error_metrics, ssi, legend_label="ssi", line_color="black", line_width=2)
-    p6.yaxis.axis_label = 'ssi'
-
     select = figure(title="Drag the middle and edges of the selection box to change the range above",
                     sizing_mode='stretch_width', height=plot_h,
                     x_axis_type="datetime", y_axis_type=None,
@@ -262,9 +197,9 @@ def run(dir_matches_data, dir_h, ref_f_rois_edges, dir_acc_metrics, ref_fname, t
     select.add_tools(range_tool)
 
 
-    name = 'accuracy_metrics.html'
+    name = 'homography_accuracy_metrics.html'
     output_file(dir_acc_metrics / name, title='ACCURACY METRICS')
-    layout = column(global_title, p1, p2, p3, p4, p5, p6, select, sizing_mode='stretch_width')
+    layout = column(global_title, p1, p2, p3, select, sizing_mode='stretch_width')
     save(layout)
 
     return

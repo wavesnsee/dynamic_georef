@@ -16,7 +16,6 @@ app = typer.Typer(no_args_is_help=True)
 class RefImg(BaseModel):
     fname: Path
     f_rois_fm: Path
-    f_rois_edges: Path
     f_gcps: Path
 
 class TargetImgs(BaseModel):
