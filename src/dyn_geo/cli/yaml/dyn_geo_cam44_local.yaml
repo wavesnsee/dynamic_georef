@@ -7,7 +7,7 @@ target_imgs:
   dir: '/home/florent/Projects/Etretat/Etretat_central2/test_dyn_geo/target_imgs'
 f_cam_params: '/home/florent/Projects/Etretat/Etretat_central2/info/cam_params_central2.json'
 matching: 'flann' # bfmatcher or flann
-roi_low_distort: '/home/florent/Projects/Etretat/Etretat_central2/test_dyn_geo/A_Etretat_central2_2fps_600s_20251015_15_00_roi_low_dist.json'
+f_roi_low_distort: '/home/florent/Projects/Etretat/Etretat_central2/test_dyn_geo/A_Etretat_central2_2fps_600s_20251015_15_00_roi_low_dist.json'
 pgrid:
   xmin: -20
   xmax: 30
@@ -27,9 +27,9 @@ plot3d:
   only_at_noon: True
 compute_fm: False
 compute_h: False
-plot_fm: True
+plot_fm: False
 acc_metrics: False
 compute_raw_extrinsic: False
-compute_smooth_extrinsic: False
-plot_cam_3d_mvts: False
+compute_smooth_extrinsic: True
+plot_cam_3d_mvts: True
 warp: False

@@ -42,7 +42,7 @@ class AppConfig(BaseModel):
     target_imgs: TargetImgs
     f_cam_params: Path
     matching: str
-    roi_low_distort: Path
+    f_roi_low_distort: Path
     pgrid: ProjectionGrid
     start: datetime
     end: datetime
@@ -90,7 +90,7 @@ def main(
         # compute and save homography transforms
         if conf.compute_h:
             print('compute and save save Homography transforms')
-            h.main(conf)
+            h.ma    in(conf)
 
         # plot feature matching
         if conf.plot_fm:

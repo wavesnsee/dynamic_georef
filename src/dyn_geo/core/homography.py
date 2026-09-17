@@ -4,7 +4,6 @@ import cv2
 
 from dyn_geo.core.feature_matching import read_matches, save_matches
 from dyn_geo.core.mask import read_polygon_roi, pts_inside
-from roi_editor.core import roi
 
 
 def save_h(H, outdir, stem):

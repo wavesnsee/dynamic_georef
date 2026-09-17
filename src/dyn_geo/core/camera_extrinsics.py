@@ -8,6 +8,7 @@ import pandas as pd
 from georef.operators import Georef, ExtrinsicMatrix
 
 from dyn_geo.core import img
+from dyn_geo.core.mask import read_polygon_roi, pts_inside
 
 
 def plot_gcps_ref_target(gcps_uv, gcps_uv_warped, f_cam_params, target_img_fn, ref_img_fn, dir_gcps):
@@ -40,25 +41,21 @@ def plot_gcps_ref_target(gcps_uv, gcps_uv_warped, f_cam_params, target_img_fn, r
     return
 
 
-def compute_targets_extrinsic(dir_h, f_gcps, f_cam_params, target_imgs_dir, ref_img_fn, dir_gcps, start, end,
-                              outdir_cam_params_upd, plot_gcps=False):
+def compute_targets_extrinsic(dir_h, f_gcps, f_cam_params, target_imgs_dir, ref_img_fn, dir_gcps, f_roi_low_distort,
+                              start, end, outdir_cam_params_upd, plot_gcps=True):
 
     # list of homography matrixes
-    # ls_h = sorted(dir_h.glob('*.npy'))
     ls_h = img.ls_period(dir_h, start, end, extension='*.npy')
 
     # Read initial camera parameters file
     with open(f_cam_params, 'r') as f:
         cam_params = json.load(f)
 
-    # read georef parameters, that will be updated for each target image
+    # read ref georef parameters, that will be updated for each target image
     georef_params = Georef.from_param_file(f_cam_params)
 
     # initialize list of Georef objects
     georef_params_upd = [copy(georef_params) for i in range(len(ls_h))]
-
-    # initialize date
-    # date = []
 
     # read gcps file
     df = pd.read_csv(f_gcps)
@@ -69,10 +66,20 @@ def compute_targets_extrinsic(dir_h, f_gcps, f_cam_params, target_imgs_dir, ref_
     # camera matrix
     camera_matrix = georef_params.intrinsic_parameters.camera_matrix
 
+    # read roi of low distorsion
+    roi_ld = read_polygon_roi(f_roi_low_distort)
+
     # distort gcps uv
     dist_coeffs = georef_params.distortion_coefficients.array
     gcps_uv = cv2.undistortPoints(gcps_uv.reshape(-1, 1, 2), camera_matrix,
                                   dist_coeffs, P=camera_matrix).reshape(-1, 2)
+    df['U'] = gcps_uv[:, 0]
+    df['V'] = gcps_uv[:, 1]
+
+    # Keep gcps_uv points inside roi of low distorsion
+    mask_ld = pts_inside(roi_ld, df, x='U', y='V')
+    df = df[mask_ld]
+    gcps_uv = gcps_uv[mask_ld]
 
     # zero distorsion coefficients
     zero_dist_coeffs = np.zeros_like(dist_coeffs)
@@ -95,6 +102,12 @@ def compute_targets_extrinsic(dir_h, f_gcps, f_cam_params, target_imgs_dir, ref_
         # apply homography to gcps
         gcps_uv_warped = cv2.perspectiveTransform(gcps_uv.reshape(-1, 1, 2), H)
         gcps_uv_warped = gcps_uv_warped.reshape(-1, 2)
+        df['U_warped'] = gcps_uv_warped[:, 0]
+        df['V_warped'] = gcps_uv_warped[:, 1]
+
+        # To Keep gcps_uv_warped points inside roi of low distorsion
+        mask_ld = pts_inside(roi_ld, df, x='U_warped', y='V_warped')
+
         gcps_uv_warped = gcps_uv_warped.reshape(gcps_uv_warped.shape[0], 1, gcps_uv_warped.shape[1])
 
         if plot_gcps:
@@ -104,30 +117,29 @@ def compute_targets_extrinsic(dir_h, f_gcps, f_cam_params, target_imgs_dir, ref_
 
 
         # compute dynamic georef from warped gcps
-        ret, rvec, tvec, inliers = cv2.solvePnPRansac(gcps_xyz.astype(np.float32),
-                                                      gcps_uv_warped.astype(np.float32),
-                                                      camera_matrix,
-                                                      zero_dist_coeffs,
-                                                      rvec=None,
-                                                      tvec=None,
-                                                      iterationsCount=50000,
-                                                      reprojectionError=2,
-                                                      flags=cv2.SOLVEPNP_EPNP)
+        try:
+            ret, rvec, tvec, inliers = cv2.solvePnPRansac(gcps_xyz.astype(np.float32)[mask_ld],
+                                                          gcps_uv_warped.astype(np.float32)[mask_ld],
+                                                          camera_matrix,
+                                                          zero_dist_coeffs,
+                                                          rvec=None,
+                                                          tvec=None,
+                                                          iterationsCount=50000,
+                                                          reprojectionError=2,
+                                                          flags=cv2.SOLVEPNP_EPNP)
 
-        # time
-        # t = img.get_date(f_h)
-        # date.append(t)
+            # save updated georef parameters
+            extrinsic_upd = ExtrinsicMatrix(rvec, tvec)
+            georef_params_upd[i].extrinsic = extrinsic_upd
 
-        # save updated georef parameters
-        extrinsic_upd = ExtrinsicMatrix(rvec, tvec)
-        georef_params_upd[i].extrinsic = extrinsic_upd
+            # save updated camera parameters, changing only extrinsic parameters
+            cam_params['extrinsic_parameters']['rvec'] = rvec.reshape(-1).tolist()
+            cam_params['extrinsic_parameters']['tvec'] = tvec.reshape(-1).tolist()
+            with open(outdir_cam_params_upd / f_h.name.replace('.npy', '.json'), 'w') as f:
+                json.dump(cam_params, f, indent=2)
+        except cv2.error as e:
+            print(e)
 
-        # save updated camera parameters, changing only extrinsic parameters
-        cam_params['extrinsic_parameters']['rvec'] = rvec.reshape(-1).tolist()
-        cam_params['extrinsic_parameters']['tvec'] = tvec.reshape(-1).tolist()
-        with open(outdir_cam_params_upd / f_h.name.replace('.npy', '.json'), 'w') as f:
-            json.dump(cam_params, f, indent=2)
-    # return date, georef_params_upd
     return
 
 
@@ -188,11 +200,11 @@ def read_cam_params(dir_cparams, start=None, end=None, only_at_noon=False):
     return t_cparams, georef_params
 
 
-def run(dir_h, dir_imgs, ref_img_fn, f_gcps, f_cam_params, start, end, dir_gcps, odir_cparams):
+def run(dir_h, dir_imgs, ref_img_fn, f_gcps, f_cam_params, start, end, roi_low_distort, dir_gcps, odir_cparams):
 
     # compute georef parameters for each target image
     compute_targets_extrinsic(dir_h, f_gcps, f_cam_params, dir_imgs, ref_img_fn, dir_gcps,
-                                                    start, end, odir_cparams)
+                              roi_low_distort, start, end, odir_cparams)
 
 
 

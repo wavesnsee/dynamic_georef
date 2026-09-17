@@ -15,8 +15,10 @@ def main(conf):
                              conf.f_cam_params,
                              conf.start,
                              conf.end,
+                             conf.f_roi_low_distort,
                              paths.gcps,
-                             paths.cam_params_raw)
+                             paths.cam_params_raw
+                              )
 
     # compute camera smooth extrinsics
     if conf.compute_smooth_extrinsic:
