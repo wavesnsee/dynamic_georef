@@ -83,9 +83,9 @@ def main(
         raise typer.Exit("Reference image does not exist")
 
     try:
-        # Run feature matching
+        # run feature matching
         if conf.compute_fm:
-            print('run feature matching and save Homography transforms')
+            print('run feature matching')
             fm.main(conf)
 
         # compute and save homography transforms
@@ -93,20 +93,20 @@ def main(
             print('compute and save save Homography transforms')
             h.main(conf)
 
-        # Plot feature matching
+        # plot feature matching
         if conf.plot_fm:
             print('plot matching points')
             fm.plot(conf)
 
-        # Compute accuracy metrics
+        # compute accuracy metrics
         if conf.acc_metrics:
             print('compute accuracy metrics between ref and target images')
             accuracy.main(conf)
 
-        # Compute camera raw extrinsics, and smooth extrinsics
+        # compute camera raw extrinsics, and smooth extrinsics
         cam_mvts.main(conf)
 
-        # Plot 3d camera movements
+        # plot 3d camera movements
         if conf.plot_cam_3d_mvts:
             print('plot 3D camera movements')
             cam_mvts.plot_3d(conf)
