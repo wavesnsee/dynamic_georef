@@ -13,10 +13,10 @@ from dyn_geo.core import img
 def plot_gcps_ref_target(gcps_uv, gcps_uv_warped, f_cam_params, target_img_fn, ref_img_fn, dir_gcps):
 
     # read reference image
-    im_ref, _, _, _ = img.read(ref_img_fn, f_cam_params)
+    im_ref, _, _, _ = img.read_im(ref_img_fn, f_cam_params)
 
     # read target img
-    im, _, _, _ = img.read(target_img_fn, f_cam_params)
+    im, _, _, _ = img.read_im(target_img_fn, f_cam_params)
 
     # plot gcps on reference image and on target image
     plt.close('all')

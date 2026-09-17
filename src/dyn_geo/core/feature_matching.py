@@ -157,7 +157,7 @@ def plot_src_and_dst_matches(src_pts, dst_pts, inlier_mask, im_ref, im, outdir_m
 def run(ref_fn, ref_f_rois, target_imgs_dir, start, end, f_cam_params, type_matching, path):
 
     # read reference image
-    im_ref, im_ref_gray, h, w = img.read(ref_fn, f_cam_params)
+    _, im_ref_gray, h, w = img.read_im(ref_fn, f_cam_params)
 
     # get masks from rois that were defined on ref image
     masks, mask_ref = masks_from_rois(ref_f_rois, (h, w))
@@ -193,7 +193,7 @@ def run(ref_fn, ref_f_rois, target_imgs_dir, start, end, f_cam_params, type_matc
         src_pts = []
 
         # read target image
-        im, im_gray, _, _ = img.read(f, f_cam_params)
+        _, im_gray, _, _ = img.read_im(f, f_cam_params)
 
         # loop through masks applied on target img
         for i in range(len(masks)):
