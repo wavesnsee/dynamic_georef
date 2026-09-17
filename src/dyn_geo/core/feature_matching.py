@@ -30,16 +30,17 @@ def get_matching_pts(matcher, des_ref, des):
     return raw_matches
 
 
-def save_matches(src_pts, dst_pts, inlier_mask, dir_matches, stem):
+def save_matches(src_pts, dst_pts, dir_matches, stem, valid_mask=None):
     dst_pts = np.squeeze(dst_pts)
     src_pts = np.squeeze(src_pts)
-    inlier_mask = np.squeeze(inlier_mask)
+
     data = {}
     data['src_x'] = src_pts[:, 0]
     data['src_y'] = src_pts[:, 1]
     data['dst_x'] = dst_pts[:, 0]
     data['dst_y'] = dst_pts[:, 1]
-    data['valid'] = inlier_mask.astype(bool)
+    if valid_mask is not None:
+        data['valid'] = valid_mask.astype(bool)
 
     df = pd.DataFrame(data)
 
@@ -56,13 +57,7 @@ def read_matches(dir_matches):
     for f in ls_csv:
         matches.append(pd.read_csv(f))
 
-    return matches
-
-
-def save_h(H, outdir, stem):
-    name = stem + '.npy'
-    np.save(outdir / name, H)
-    return
+    return ls_csv, matches
 
 
 def plot_src_and_dst_matches_mpl(src_pts, dst_pts, inlier_mask, im_ref, im, outdir_matches_plots, stem):
@@ -212,42 +207,8 @@ def run(ref_fn, ref_f_rois, target_imgs_dir, start, end, f_cam_params, type_matc
         dst_pts = np.vstack(dst_pts)
         src_pts = np.vstack(src_pts)
 
-        # compute homography and inliers
-        H, inlier_mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, 5)
-
         # save matches
-        save_matches(src_pts, dst_pts, inlier_mask, path.matches_data, f.stem)
-
-        # save homography
-        # save_h(H, path.h, f.stem)
-
-        # if ecc:
-        #     # ECC
-        #     warp_mode = cv2.MOTION_HOMOGRAPHY
-        #     # The warp matrix is the initial homography, converted to float32 if needed
-        #     warp_matrix = H.astype(np.float32)
-        #     # Termination criteria: stop after 2000 iterations or when epsilon is reached
-        #     eps = 0.0001
-        #     criteria = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 1000, eps)
-        #     # The order of images: (templateImage, inputImage, warpMatrix, ...)
-        #     # It will refine warp_matrix to best align inputImage to templateImage
-        #     mask = cv2.dilate(mask_ref, kernel, iterations=1)
-        #     # cc, refined_h = cv2.findTransformECC(im_ref_gray, im_gray, warp_matrix, warp_mode, criteria, None, mask)
-        #     try:
-        #         cc, refined_H = cv2.findTransformECCWithMask(im_ref_gray, im_gray, mask_ref, mask, warp_matrix, warp_mode, criteria)
-        #         # apply homography to target image
-        #         im = cv2.cvtColor(im, cv2.COLOR_RGB2BGR)
-        #         warped_img = cv2.warpPerspective(im, refined_H, (w, h), flags=cv2.INTER_LINEAR + cv2.WARP_INVERSE_MAP)
-        #         # save warped image
-        #         cv2.imwrite(outdir_warped / f.name, warped_img)
-        #     except:
-        #         print('ecc iterations did not converge')
-        # else:
-        #     # apply homography to target image
-        #     im = cv2.cvtColor(im, cv2.COLOR_RGB2BGR)
-        #     warped_img = cv2.warpPerspective(im, H, (w, h))
-        #     # save warped image
-        #     cv2.imwrite(outdir_warped / f.name, warped_img)
+        save_matches(src_pts, dst_pts, path.matches_data_raw, f.stem)
 
     return
 
