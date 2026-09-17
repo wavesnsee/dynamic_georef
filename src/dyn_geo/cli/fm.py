@@ -23,5 +23,5 @@ def plot(conf):
                           conf.start,
                           conf.end,
                           conf.f_cam_params,
-                          paths.matches_data,
+                          paths.matches_data_filtered,
                           paths.matches_plot)
