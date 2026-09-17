@@ -29,19 +29,23 @@ def read_jpeg(fname, pixel_format=tjpeg.TJPF_BGR) -> np.ndarray:
     return rgb
 
 
-def read(f, f_cam_params):
-
-    # read input img
-    im = read_jpeg(f)
-
-    # convert to gray
-    im_gray = cv2.cvtColor(im, cv2.COLOR_RGB2GRAY)
+def read_im(f, f_cam_params):
 
     # read camera georef parameters
     georef_params = Georef.from_param_file(f_cam_params)
 
-    # undistort grayscale img
-    im_gray = cv2.undistort(im_gray, georef_params.intrinsic.camera_matrix, georef_params.dist_coeffs)
+    # read img
+    im = read_jpeg(f)
+
+    # undistort img
+    im =  cv2.undistort(im, georef_params.intrinsic.camera_matrix, georef_params.dist_coeffs)
+    plt.imshow(im)
+
+    # convert to gray
+    im_gray = cv2.cvtColor(im, cv2.COLOR_RGB2GRAY)
+    plt.figure()
+    plt.imshow(im_gray)
+    plt.show()
 
     # width, height of image
     h, w = im.shape[0:2]
