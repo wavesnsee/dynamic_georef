@@ -90,7 +90,7 @@ def main(
         # compute and save homography transforms
         if conf.compute_h:
             print('compute and save save Homography transforms')
-            h.ma    in(conf)
+            h.main(conf)
 
         # plot feature matching
         if conf.plot_fm:
