@@ -1,4 +1,4 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, fields
 from pathlib import Path
 
 
@@ -6,11 +6,14 @@ from pathlib import Path
 class Paths:
     outdir: Path
     matching_technique: 'str'
+
     matches: Path = field(init=False)
     matches_plot: Path = field(init=False)
-    matches_data: Path = field(init=False)
+    matches_data_raw: Path = field(init=False)
+    matches_data_filtered: Path = field(init=False)
     acc_metrics: Path = field(init=False)
     cam_mvts: Path = field(init=False)
+    dir_lidar: Path = field(init=False)
     cam_params_raw: Path = field(init=False)
     cam_params_smooth: Path = field(init=False)
     h: Path = field(init=False)
@@ -22,7 +25,8 @@ class Paths:
         self.outdir = self.outdir / self.matching_technique
         self.matches = self.outdir / "matches"
         self.matches_plot = self.matches / "plots"
-        self.matches_data = self.matches / "data"
+        self.matches_data_raw = self.matches / "data" / "raw"
+        self.matches_data_filtered = self.matches / "data" / "filtered"
         self.acc_metrics = self.outdir / "acc_metrics"
         self.cam_mvts = self.outdir / "cam_mvts"
         self.dir_lidar = self.cam_mvts / "lidar"
@@ -34,8 +38,12 @@ class Paths:
         self.create_all()
 
     def create_all(self):
-        """Create all directories"""
-        for path in [self.matches_plot, self.matches_data, self.h, self.acc_metrics, self.cam_mvts, self.dir_lidar,
-                     self.cam_params_raw, self.cam_params_smooth, self.gcps, self.warped]:
-            path.mkdir(parents=True, exist_ok=True)
-        return self
+        """Create all generated directories."""
+        for field in fields(self):
+            print(field)
+            path = getattr(self, field.name)
+
+            if isinstance(path, Path) and field.name != "outdir":
+                path.mkdir(parents=True, exist_ok=True)
+
+        return
