@@ -22,5 +22,6 @@ def plot(conf):
                           conf.target_imgs.dir,
                           conf.start,
                           conf.end,
+                          conf.f_cam_params,
                           paths.matches_data,
                           paths.matches_plot)
