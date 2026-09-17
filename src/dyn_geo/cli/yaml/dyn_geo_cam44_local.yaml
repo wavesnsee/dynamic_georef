@@ -2,7 +2,6 @@ cam_id: 44
 ref_img:
   fname: '/home/florent/Projects/Etretat/Etretat_central2/images/raw/A_Etretat_central2_2fps_600s_20251015_15_00.jpg'
   f_rois_fm: '/home/florent/Projects/Etretat/Etretat_central2/test_dyn_geo/A_Etretat_central2_2fps_600s_20251015_15_00_rois_fm.json'
-  f_rois_edges: '/home/florent/Projects/Etretat/Etretat_central2/test_dyn_geo/A_Etretat_central2_2fps_600s_20251015_15_00_rois_edges.json'
   f_gcps: '/home/florent/Projects/Etretat/Geodesie/GCPS_2025/fichiers_correspondance_coordonnees_relles_vs_pixels/CAM44/gcps_CAM44.csv'
 target_imgs:
   dir: '/home/florent/Projects/Etretat/Etretat_central2/test_dyn_geo/target_imgs'
@@ -27,8 +26,8 @@ plot3d:
   end: 2026-04-14 20:00 # end for plot3d
   only_at_noon: True
 compute_fm: False
-plot_fm: False
-compute_h: True
+compute_h: False
+plot_fm: True
 acc_metrics: False
 compute_raw_extrinsic: False
 compute_smooth_extrinsic: False

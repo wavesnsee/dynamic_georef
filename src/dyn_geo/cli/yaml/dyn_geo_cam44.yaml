@@ -2,7 +2,6 @@ cam_id: 44
 ref_img:
   fname: '/data/workspaces/florent/Projects/Etretat/Etretat_central2/images/raw/A_Etretat_central2_2fps_600s_20251015_15_00.jpg'
   f_rois_fm: '/data/workspaces/florent/Projects/Etretat/Etretat_central2/info/dyn_georef/rois/A_Etretat_central2_2fps_600s_20251015_15_00_rois_fm.json'
-  f_rois_edges: '/data/workspaces/florent/Projects/Etretat/Etretat_central2/info/dyn_georef/rois/A_Etretat_central2_2fps_600s_20251015_15_00_rois_edges.json'
   f_gcps: '/data/workspaces/florent/Projects/Etretat/Geodesie/gcps_2025/gcps_CAM44.csv'
 target_imgs:
   dir: '/data/workspaces/florent/Projects/Etretat/Etretat_central2/images/raw/'
