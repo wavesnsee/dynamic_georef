@@ -40,10 +40,7 @@ class Paths:
     def create_all(self):
         """Create all generated directories."""
         for field in fields(self):
-            print(field)
             path = getattr(self, field.name)
-
             if isinstance(path, Path) and field.name != "outdir":
                 path.mkdir(parents=True, exist_ok=True)
-
         return
