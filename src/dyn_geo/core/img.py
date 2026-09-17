@@ -1,7 +1,6 @@
 import cv2
 import json
 
-import matplotlib.pyplot as plt
 from dateutil import parser
 import numpy as np
 from georef.operators import Georef
@@ -39,13 +38,9 @@ def read_im(f, f_cam_params):
 
     # undistort img
     im =  cv2.undistort(im, georef_params.intrinsic.camera_matrix, georef_params.dist_coeffs)
-    plt.imshow(im)
 
     # convert to gray
     im_gray = cv2.cvtColor(im, cv2.COLOR_RGB2GRAY)
-    plt.figure()
-    plt.imshow(im_gray)
-    plt.show()
 
     # width, height of image
     h, w = im.shape[0:2]
