@@ -160,7 +160,7 @@ def run(ref_fn, ref_f_rois, target_imgs_dir, start, end, f_cam_params, type_matc
     _, im_ref_gray, h, w = img.read_im(ref_fn, f_cam_params)
 
     # get masks from rois that were defined on ref image
-    masks, mask_ref = masks_from_rois(ref_f_rois, (h, w))
+    masks, _ = masks_from_rois(ref_f_rois, (h, w))
 
     # Create a SIFT object (is an algorithm used to detect and describe local features in images.
     # SIFT is robust to changes in scale, rotation, and illumination)
@@ -252,15 +252,13 @@ def run(ref_fn, ref_f_rois, target_imgs_dir, start, end, f_cam_params, type_matc
     return
 
 
-def plot(fp_ref_im, target_imgs_dir, start, end, dir_matches_data, dir_matches_plot):
+def plot(fp_ref_im, target_imgs_dir, start, end, f_cam_params, dir_matches_data, dir_matches_plot):
 
     # list of csv matching points data files
-    # ls = sorted(dir_matches_data.glob('*.csv'))
     ls = img.ls_period(dir_matches_data, start, end, extension='*.csv')
 
     # read ref im
-    im_ref = cv2.cvtColor(cv2.imread(fp_ref_im), cv2.COLOR_BGR2RGB)
-    h, w = im_ref.shape[0:2]
+    im_ref, _, h, w = img.read_im(fp_ref_im, f_cam_params)
 
     for f_match in ls:
 
@@ -273,7 +271,7 @@ def plot(fp_ref_im, target_imgs_dir, start, end, dir_matches_data, dir_matches_p
         dst_pts = df[['dst_x', 'dst_y']].to_numpy()
 
         # target im
-        im = cv2.cvtColor(cv2.imread(target_imgs_dir / (f_match.stem + '.jpg')), cv2.COLOR_BGR2RGB)
+        im, _, _, _ = img.read_im(target_imgs_dir / (f_match.stem + '.jpg'), f_cam_params)
 
         # plot matches (with matplotlib, and bokeh)
         plot_src_and_dst_matches_mpl(src_pts, dst_pts, inlier_mask, im_ref, im, dir_matches_plot, f_match.stem)
