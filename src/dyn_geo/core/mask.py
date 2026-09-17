@@ -1,7 +1,10 @@
 import pandas as pd
 import shapely
-from roi_editor.core import roi
 import numpy as np
+from shapely import Polygon
+import json
+
+from roi_editor.core import roi
 
 
 def masks_from_rois(f_roi, im_shape):
@@ -22,6 +25,15 @@ def masks_from_rois(f_roi, im_shape):
     mask = np.any(masks, axis=0).astype(np.uint8)*255
 
     return masks, mask
+
+
+def read_polygon_roi(f_roi_low_distort):
+    with open(f_roi_low_distort, 'r') as f:
+        r = json.load(f)
+    img_shape = r['img_shape']
+    roi_ = roi.ROICollection(img_shape)
+    roi_ld = roi_.load_from_json(f_roi_low_distort)
+    return Polygon(roi_ld.rois[0].points)
 
 
 def pts_inside(

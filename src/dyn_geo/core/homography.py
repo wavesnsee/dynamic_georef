@@ -1,11 +1,9 @@
 import numpy as np
 from pathlib import Path
-import json
 import cv2
-from shapely import Polygon
 
 from dyn_geo.core.feature_matching import read_matches, save_matches
-from dyn_geo.core.mask import pts_inside
+from dyn_geo.core.mask import read_polygon_roi, pts_inside
 from roi_editor.core import roi
 
 
@@ -21,12 +19,7 @@ def run(path, f_roi_low_distort: Path):
     ls, df_m = read_matches(path.matches_data_raw)
 
     # read roi of low distorsion
-    with open(f_roi_low_distort, 'r') as f:
-        r = json.load(f)
-    img_shape = r['img_shape']
-    roi_ = roi.ROICollection(img_shape)
-    roi_ld = roi_.load_from_json(f_roi_low_distort)
-    roi_ld = Polygon(roi_ld.rois[0].points)
+    roi_ld = read_polygon_roi(f_roi_low_distort)
 
     # loop through matching pairs
     for i, df in enumerate(df_m):
