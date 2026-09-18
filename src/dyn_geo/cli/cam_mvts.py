@@ -9,15 +9,15 @@ def main(conf):
     if conf.compute_raw_extrinsic:
         print('compute camera raw extrinsics')
         camera_extrinsics.run(paths.h,
-                             conf.target_imgs.dir,
-                             conf.ref_img.fname,
-                             conf.ref_img.f_gcps,
-                             conf.f_cam_params,
-                             conf.start,
-                             conf.end,
-                             conf.f_roi_low_distort,
-                             paths.gcps,
-                             paths.cam_params_raw
+                              conf.target_imgs.dir,
+                              conf.ref_img.fname,
+                              conf.ref_img.f_gcps,
+                              conf.f_cam_params,
+                              conf.start,
+                              conf.end,
+                              conf.f_roi_low_distort,
+                              paths.gcps_raw_warped,
+                              paths.cam_params_raw
                               )
 
     # compute camera smooth extrinsics

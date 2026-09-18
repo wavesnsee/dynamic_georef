@@ -11,30 +11,30 @@ class Paths:
     matches_plot: Path = field(init=False)
     matches_data_raw: Path = field(init=False)
     matches_data_filtered: Path = field(init=False)
-    acc_metrics: Path = field(init=False)
+    acc_metrics_h: Path = field(init=False)
     cam_mvts: Path = field(init=False)
     dir_lidar: Path = field(init=False)
     cam_params_raw: Path = field(init=False)
     cam_params_smooth: Path = field(init=False)
     h: Path = field(init=False)
-    gcps: Path = field(init=False)
+    gcps_raw_warped: Path = field(init=False)
     warped: Path = field(init=False)
 
     def __post_init__(self):
         """Initialize subdirectories after creation"""
         self.outdir = self.outdir / self.matching_technique
-        self.matches = self.outdir / "matches"
+        self.matches = self.outdir / "1_matches"
         self.matches_plot = self.matches / "plots"
         self.matches_data_raw = self.matches / "data" / "raw"
         self.matches_data_filtered = self.matches / "data" / "filtered"
-        self.acc_metrics = self.outdir / "acc_metrics"
-        self.cam_mvts = self.outdir / "cam_mvts"
+        self.cam_mvts = self.outdir / "4_cam_mvts"
         self.dir_lidar = self.cam_mvts / "lidar"
-        self.cam_params_raw = self.outdir / "cam_params" / "raw"
-        self.cam_params_smooth = self.outdir / "cam_params" / "smooth"
-        self.h = self.outdir / "H"
-        self.gcps  = self.outdir / "gcps_raw_warped"
-        self.warped = self.outdir / "warped"
+        self.cam_params_raw = self.outdir / "3_cam_params" / "raw"
+        self.cam_params_smooth = self.outdir / "3_cam_params" / "smooth"
+        self.h = self.outdir / "2_H" / "data"
+        self.acc_metrics_h = self.outdir / "2_H" / "plots" / "acc_metrics"
+        self.gcps_raw_warped  = self.outdir / "2_H" / "plots" / "gcps_raw_warped"
+        self.warped = self.outdir / "2_H" / "plots" / "warped_imgs"
         self.create_all()
 
     def create_all(self):

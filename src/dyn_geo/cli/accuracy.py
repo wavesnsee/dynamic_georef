@@ -7,8 +7,8 @@ def main(conf):
 
     accuracy_metrics.run(path.matches_data_filtered,
                          path.h,
-                         path.acc_metrics,
+                         path.acc_metrics_h,
                          conf.ref_img.fname,
                          conf.target_imgs.dir,
                          conf.f_cam_params,
-    )
+                         )
