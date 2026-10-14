@@ -103,9 +103,8 @@ def compute_targets_extrinsic(dir_h, f_gcps, f_cam_params, target_imgs_dir, ref_
     with open(f_cam_params, 'r') as f:
         cam_params = json.load(f)
 
-    # loop through homographies
+    # loop through homographies to compute corresponding warped gcps and extrinsic parameters
     for i, f_h in enumerate(ls_h):
-        print(f_h)
 
         # apply homography to gcps pixels' coordinates
         mask_ld, gcps_uv_warped = apply_h_to_gcps(f_h, gcps_uv, df, roi_ld)
