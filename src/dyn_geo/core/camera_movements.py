@@ -727,7 +727,7 @@ def run(f_cam_params, dir_cparams_raw, odir_cparams_smooth, odir_cam_mvts, smoot
     plot_despiking(date, position, valid, position_init, d_pos, threshold_d, odir_cam_mvts)
 
     # keep only valid data
-    date, georef_params, angles, position = keep_valid(date, georef_params, angles, position, valid, odir_cam_mvts)
+    date, georef_params, angles, position = keep_valid(date, georef_params, angles, position, valid)
 
     # quaternions
     quats = get_quaternions(georef_params)
