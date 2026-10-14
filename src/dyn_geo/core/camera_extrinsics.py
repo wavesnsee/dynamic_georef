@@ -1,5 +1,5 @@
 import json
-from copy import copy
+from pathlib import Path
 
 import cv2
 import matplotlib.pyplot as plt
@@ -42,6 +42,40 @@ def plot_gcps_ref_target(gcps_uv, gcps_uv_warped, f_cam_params, target_img_fn, r
     return
 
 
+def compute_extrinsic(gcps_uv, gcps_xyz, camera_matrix):
+
+    # zero distorsion coefficients (distorsion has already been applied to gcps_uv)
+    zero_dist_coeffs = np.zeros(5)
+
+    # solvePnPRansac
+    ret, rvec, tvec, inliers = cv2.solvePnPRansac(gcps_xyz.astype(np.float32),
+                                                  gcps_uv.astype(np.float32),
+                                                  camera_matrix,
+                                                  zero_dist_coeffs,
+                                                  rvec=None,
+                                                  tvec=None,
+                                                  iterationsCount=50000,
+                                                  reprojectionError=2,
+                                                  flags=cv2.SOLVEPNP_EPNP)
+
+    return rvec, tvec
+
+
+def save_extrinsic(rvec: np.array,
+                   tvec: np.array,
+                   cam_params: dict,
+                   f_cam_params_out: Path):
+
+    # update ref cam params with rvec and tvec
+    cam_params['extrinsic_parameters']['rvec'] = rvec.reshape(-1).tolist()
+    cam_params['extrinsic_parameters']['tvec'] = tvec.reshape(-1).tolist()
+
+    # save cam params to file
+    with open(f_cam_params_out, 'w') as f:
+        json.dump(cam_params, f, indent=2)
+    return
+
+
 def compute_targets_extrinsic(dir_h, f_gcps, f_cam_params, target_imgs_dir, ref_img_fn, dir_gcps, f_roi_low_distort,
                               start, end, outdir_cam_params_upd, plot_gcps=True):
 
@@ -60,13 +94,10 @@ def compute_targets_extrinsic(dir_h, f_gcps, f_cam_params, target_imgs_dir, ref_
     # read roi of low distorsion
     roi_ld = read_polygon_roi(f_roi_low_distort)
 
-    # read and get gcps points
+    # read gcps points
     df = read_gcps(f_gcps, roi_ld, camera_matrix, dist_coeffs)
     gcps_uv = get_gcps_uv(df)
     gcps_xyz = get_gcps_xyz(df, georef_params)
-
-    # zero distorsion coefficients
-    zero_dist_coeffs = np.zeros_like(dist_coeffs)
 
     # Read initial (ref) camera parameters file
     with open(f_cam_params, 'r') as f:
@@ -74,6 +105,7 @@ def compute_targets_extrinsic(dir_h, f_gcps, f_cam_params, target_imgs_dir, ref_
 
     # loop through homographies
     for i, f_h in enumerate(ls_h):
+        print(f_h)
 
         # apply homography to gcps pixels' coordinates
         mask_ld, gcps_uv_warped = apply_h_to_gcps(f_h, gcps_uv, df, roi_ld)
@@ -83,27 +115,21 @@ def compute_targets_extrinsic(dir_h, f_gcps, f_cam_params, target_imgs_dir, ref_
             target_img_fn = target_imgs_dir / f_h.name.replace('.npy', '.jpg')
             plot_gcps_ref_target(gcps_uv, gcps_uv_warped, f_cam_params, target_img_fn, ref_img_fn, dir_gcps)
 
+        # keep only gcps whose pixel points are inside roi of low distorsion
+        gcps_uv_warped = gcps_uv_warped[mask_ld]
+        gcps_xyz_sel = gcps_xyz[mask_ld]
 
         # compute rvec, tvec from warped gcps
         try:
-            ret, rvec, tvec, inliers = cv2.solvePnPRansac(gcps_xyz.astype(np.float32)[mask_ld],
-                                                          gcps_uv_warped.astype(np.float32)[mask_ld],
-                                                          camera_matrix,
-                                                          zero_dist_coeffs,
-                                                          rvec=None,
-                                                          tvec=None,
-                                                          iterationsCount=50000,
-                                                          reprojectionError=2,
-                                                          flags=cv2.SOLVEPNP_EPNP)
+            # compute rvec, tvec
+            rvec, tvec = compute_extrinsic(gcps_uv_warped, gcps_xyz_sel, camera_matrix)
 
             # save updated camera parameters, changing only extrinsic parameters
-            cam_params['extrinsic_parameters']['rvec'] = rvec.reshape(-1).tolist()
-            cam_params['extrinsic_parameters']['tvec'] = tvec.reshape(-1).tolist()
-            with open(outdir_cam_params_upd / f_h.name.replace('.npy', '.json'), 'w') as f:
-                json.dump(cam_params, f, indent=2)
+            f_cam_params_out = outdir_cam_params_upd / f_h.name.replace('.npy', '.json')
+            save_extrinsic(rvec, tvec, cam_params, f_cam_params_out)
+
         except cv2.error as e:
             print(e)
-
     return
 
 
