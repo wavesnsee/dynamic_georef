@@ -5,9 +5,10 @@ import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from georef.operators import Georef, ExtrinsicMatrix
 
+from georef.operators import Georef, ExtrinsicMatrix
 from dyn_geo.core import img
+from dyn_geo.core.gcps import read_gcps, get_gcps_uv, get_gcps_xyz, apply_h_to_gcps
 from dyn_geo.core.mask import read_polygon_roi, pts_inside
 
 
@@ -47,76 +48,46 @@ def compute_targets_extrinsic(dir_h, f_gcps, f_cam_params, target_imgs_dir, ref_
     # list of homography matrixes
     ls_h = img.ls_period(dir_h, start, end, extension='*.npy')
 
-    # Read initial camera parameters file
-    with open(f_cam_params, 'r') as f:
-        cam_params = json.load(f)
-
     # read ref georef parameters, that will be updated for each target image
     georef_params = Georef.from_param_file(f_cam_params)
-
-    # initialize list of Georef objects
-    georef_params_upd = [copy(georef_params) for i in range(len(ls_h))]
-
-    # read gcps file
-    df = pd.read_csv(f_gcps)
-
-    # extract gcps uv (pixel) coordinates
-    gcps_uv = df[['U', 'V']].to_numpy()
 
     # camera matrix
     camera_matrix = georef_params.intrinsic_parameters.camera_matrix
 
+    # distorsion coefficients
+    dist_coeffs = georef_params.distortion_coefficients.array
+
     # read roi of low distorsion
     roi_ld = read_polygon_roi(f_roi_low_distort)
 
-    # distort gcps uv
-    dist_coeffs = georef_params.distortion_coefficients.array
-    gcps_uv = cv2.undistortPoints(gcps_uv.reshape(-1, 1, 2), camera_matrix,
-                                  dist_coeffs, P=camera_matrix).reshape(-1, 2)
-    df['U'] = gcps_uv[:, 0]
-    df['V'] = gcps_uv[:, 1]
-
-    # Keep gcps_uv points inside roi of low distorsion
-    mask_ld = pts_inside(roi_ld, df, x='U', y='V')
-    df = df[mask_ld]
-    gcps_uv = gcps_uv[mask_ld]
+    # read and get gcps points
+    df = read_gcps(f_gcps, roi_ld, camera_matrix, dist_coeffs)
+    gcps_uv = get_gcps_uv(df)
+    gcps_xyz = get_gcps_xyz(df, georef_params)
 
     # zero distorsion coefficients
     zero_dist_coeffs = np.zeros_like(dist_coeffs)
 
-    # compute gcps geo coordinates in local srs
-    gcps_xyz = df[['easting', 'northing', 'elevation']].to_numpy().T
-    gcps_xyz = (georef_params.local_srs.m_l_w @ gcps_xyz).T[:, 0:3]
+    # Read initial (ref) camera parameters file
+    with open(f_cam_params, 'r') as f:
+        cam_params = json.load(f)
 
-    # reshape gcps_xyz to make it compatible with solvePnPRansac
-    gcps_xyz = gcps_xyz.reshape(gcps_xyz.shape[0], 1, gcps_xyz.shape[1])
+    # initialize list of Georef objects
+    georef_params_upd = [copy(georef_params) for i in range(len(ls_h))]
 
     # loop through homographies
     for i, f_h in enumerate(ls_h):
-        # load homography matrix
-        H = np.load(f_h)
 
-        # reverse H
-        H = np.linalg.inv(H)
+        # apply homography to gcps pixels' coordinates
+        mask_ld, gcps_uv_warped = apply_h_to_gcps(f_h, gcps_uv, df, roi_ld)
 
-        # apply homography to gcps
-        gcps_uv_warped = cv2.perspectiveTransform(gcps_uv.reshape(-1, 1, 2), H)
-        gcps_uv_warped = gcps_uv_warped.reshape(-1, 2)
-        df['U_warped'] = gcps_uv_warped[:, 0]
-        df['V_warped'] = gcps_uv_warped[:, 1]
-
-        # To Keep gcps_uv_warped points inside roi of low distorsion
-        mask_ld = pts_inside(roi_ld, df, x='U_warped', y='V_warped')
-
-        gcps_uv_warped = gcps_uv_warped.reshape(gcps_uv_warped.shape[0], 1, gcps_uv_warped.shape[1])
-
+        # plot gcps on reference image and on target image
         if plot_gcps:
-            # plot gcps on reference image and on target image
             target_img_fn = target_imgs_dir / f_h.name.replace('.npy', '.jpg')
             plot_gcps_ref_target(gcps_uv, gcps_uv_warped, f_cam_params, target_img_fn, ref_img_fn, dir_gcps)
 
 
-        # compute dynamic georef from warped gcps
+        # compute rvec, tvec from warped gcps
         try:
             ret, rvec, tvec, inliers = cv2.solvePnPRansac(gcps_xyz.astype(np.float32)[mask_ld],
                                                           gcps_uv_warped.astype(np.float32)[mask_ld],
