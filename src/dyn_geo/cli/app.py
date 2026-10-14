@@ -102,7 +102,7 @@ def main(
             print('compute accuracy metrics between ref and target images')
             accuracy.main(conf)
 
-        # compute camera raw extrinsics, and smooth extrinsics
+        # compute camera raw extrinsics, raw camera movements and then smooth' ones, and smooth extrinsics
         cam_mvts.main(conf)
 
         # plot 3d camera movements
