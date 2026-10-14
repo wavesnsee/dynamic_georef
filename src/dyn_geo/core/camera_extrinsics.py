@@ -72,9 +72,6 @@ def compute_targets_extrinsic(dir_h, f_gcps, f_cam_params, target_imgs_dir, ref_
     with open(f_cam_params, 'r') as f:
         cam_params = json.load(f)
 
-    # initialize list of Georef objects
-    georef_params_upd = [copy(georef_params) for i in range(len(ls_h))]
-
     # loop through homographies
     for i, f_h in enumerate(ls_h):
 
@@ -98,10 +95,6 @@ def compute_targets_extrinsic(dir_h, f_gcps, f_cam_params, target_imgs_dir, ref_
                                                           iterationsCount=50000,
                                                           reprojectionError=2,
                                                           flags=cv2.SOLVEPNP_EPNP)
-
-            # save updated georef parameters
-            extrinsic_upd = ExtrinsicMatrix(rvec, tvec)
-            georef_params_upd[i].extrinsic = extrinsic_upd
 
             # save updated camera parameters, changing only extrinsic parameters
             cam_params['extrinsic_parameters']['rvec'] = rvec.reshape(-1).tolist()
