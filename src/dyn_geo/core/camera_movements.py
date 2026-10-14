@@ -1,10 +1,7 @@
 import io
 import json
 from copy import copy
-from datetime import timedelta, datetime
-from pathlib import Path
 
-import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 import numpy as np
 import numpy.linalg
@@ -162,7 +159,7 @@ def despike_cam_mvts(position_ref, position, threshold_d=0.6):
     return d, valid
 
 
-def keep_valid(date, georef_params, angles, position, valid, outdir_cam_mvts):
+def keep_valid(date, georef_params, angles, position, valid):
     date = np.array(date)[valid]
     georef_params = np.array(georef_params)[valid]
     angles['pitch'] = np.array(angles['pitch'])[valid]
@@ -426,6 +423,9 @@ def get_quaternions(georef_params):
 
 
 def get_periods(date, quats, outdir_cam_mvts):
+    '''
+    get subperiods from large camera movements
+    '''
 
     def angular_distance(q1, q2):
         """Geodesic distance between two unit quaternions, in radians."""
