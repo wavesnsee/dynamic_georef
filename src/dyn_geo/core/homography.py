@@ -12,7 +12,7 @@ def save_h(H, outdir, stem):
     return
 
 
-def run(path, f_roi_low_distort: Path):
+def compute(path, f_roi_low_distort: Path):
 
     # read raw matches
     ls, df_m = read_matches(path.matches_data_raw)
@@ -45,6 +45,5 @@ def run(path, f_roi_low_distort: Path):
         save_matches(src_pts, dst_pts, path.matches_data_filtered, ls[i].stem, valid_mask=np.squeeze(inlier_mask))
 
     return
-
 
 
