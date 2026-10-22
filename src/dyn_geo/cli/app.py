@@ -82,12 +82,12 @@ def main(
         raise typer.Exit("Reference image does not exist")
 
     try:
-        # run feature matching
+        # compute and save raw matching points
         if conf.compute_fm:
             print('run feature matching')
             fm.main(conf)
 
-        # compute and save homography transforms
+        # compute and save homography transforms, save valid (ransac) matching points
         if conf.compute_h:
             print('compute and save save Homography transforms')
             h.main(conf)
