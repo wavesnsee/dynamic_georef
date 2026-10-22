@@ -2,6 +2,7 @@ import cv2
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import bokeh
 from bokeh.plotting import figure, save, output_file
 from bokeh.models import Range1d
 from bokeh.layouts import row
@@ -147,6 +148,7 @@ def plot_src_and_dst_matches(src_pts, dst_pts, inlier_mask, im_ref, im, outdir_m
     name = name + '.html'
     output_file(outdir_matches_plots / name)
     save(layout)
+    bokeh.io.curdoc().clear()
 
 
 def run(ref_fn, ref_f_rois, target_imgs_dir, start, end, f_cam_params, type_matching, path):
