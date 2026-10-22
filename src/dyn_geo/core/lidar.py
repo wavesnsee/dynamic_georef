@@ -23,6 +23,8 @@ def lidar_2_local(f_lidar: Path, roi_lidar: Path, odir_cam_mvts:Path, georef_par
         z, left, bottom, right, top = reproject_rasters([lidar],
                                                         crs=georef_params[0].local_srs.horizontal_srs.auth_srid,
                                                         flipud_bokeh=False)
+    else:
+        z = [lidar.read(1).astype(float)]
 
     # get lidar grid coordinates
     X, Y = raster_grid(lidar, georef_params[0].local_srs.horizontal_srs.auth_srid)
