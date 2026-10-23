@@ -1,0 +1,37 @@
+cam_id: 62
+ref_img:
+  fname: '/home/florent/Projects/Caparica/caparica_3/images/ref/A_caparica_3_2fps_600s_20260622_11_20.jpg'
+  f_rois_fm: '/home/florent/Projects/Caparica/caparica_3/images/ref/A_caparica_3_2fps_600s_20260622_11_20_rois.json'
+  f_gcps: '/home/florent/Projects/Caparica/Geodesie/gcps/2e_lever_20260527/GCPS_CAM62_selection.csv'
+target_imgs:
+  dir: '/home/florent/Projects/Caparica/caparica_3/images/raw/'
+f_cam_params: '/home/florent/Projects/Caparica/caparica_3/info/cam_params_caparica3.json'
+matching: 'flann' # bfmatcher or flann
+f_roi_low_distort: '/home/florent/Projects/Caparica/caparica_3/images/ref/A_caparica_3_2fps_600s_20260622_11_20_roi_ld.json'
+pgrid:
+  xmin: 67
+  xmax: 600
+  ymin: -10
+  ymax: 185
+  res: 0.5
+  z: 8.6
+start: 2026-05-15 00:00 # start for computation of feature matching, and raw extrinsic
+end: 2026-05-31 20:00 # end for computation of feature matching, and raw extrinsic
+smooth_w: '3D' # smoothing window used in rolling mean of quaternions and tvecs' components
+outdir: '/home/florent/Projects/Caparica/caparica_3/test_dyn_geo/'
+plot3d:
+  f_lidar: '/home/florent/Projects/Caparica/dem/LTHCACO1_20260422_20260427_DEM.tif'
+  roi_lidar: '/home/florent/Projects/Caparica/caparica_3/info/roi/roi_lidar_c3.gpkg'
+  plot_lidar: True
+  subsample_factor_lidar: 10
+  start: 2026-05-15 00:00 # start for plot3d
+  end: 2026-05-16 20:00 # end for plot3d
+  only_at_noon: False
+compute_fm: False
+compute_h: False
+plot_fm: False
+acc_metrics: False
+compute_raw_extrinsic: False
+compute_smooth_extrinsic: False
+plot_cam_3d_mvts: True
+warp: False
