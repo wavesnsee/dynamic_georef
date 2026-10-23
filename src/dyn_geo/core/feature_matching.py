@@ -238,7 +238,7 @@ def plot(fp_ref_im, target_imgs_dir, start, end, f_cam_params, dir_matches_data,
 
         # plot matches (with matplotlib, and bokeh)
         plot_src_and_dst_matches_mpl(src_pts, dst_pts, inlier_mask, im_ref, im, dir_matches_plot, f_match.stem)
-        plot_src_and_dst_matches(src_pts, dst_pts, inlier_mask, im_ref, im, dir_matches_plot, f_match.stem, h, w)
+        # plot_src_and_dst_matches(src_pts, dst_pts, inlier_mask, im_ref, im, dir_matches_plot, f_match.stem, h, w)
 
     return
 
