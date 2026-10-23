@@ -37,13 +37,15 @@ def plot_3d(conf):
     paths = Paths(conf.outdir, conf.matching)
 
     # plot 3D camera movements, in parallel with raw and projected images
-    camera_movements.plot_cam_mvts_3d(paths.cam_params_smooth,
+    camera_movements.plot_cam_mvts_3d(paths.cam_params_raw,
                                       conf.target_imgs.dir,
                                       paths.cam_mvts,
                                       conf.ref_img.f_gcps,
                                       conf.pgrid,
+                                      conf.plot3d.plot_lidar,
                                       conf.plot3d.f_lidar,
                                       conf.plot3d.roi_lidar,
+                                      conf.plot3d.subsample_factor_lidar,
                                       conf.plot3d.start,
                                       conf.plot3d.end,
                                       conf.plot3d.only_at_noon
