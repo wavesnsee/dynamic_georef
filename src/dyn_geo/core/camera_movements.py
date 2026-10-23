@@ -555,7 +555,7 @@ def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts, f_gcps, pgrid
     else:
         u, v_flipped, z = None, None, None
         # color mapper
-        color_mapper = get_color_mapper(low=np.nanmin(z_gcps), high=np.nanmax(z_gcps), type='topo')
+        color_mapper = get_color_mapper(low=np.nanmin(z_gcps[0]), high=np.nanmax(z_gcps[0]), type='topo')
 
     # Left panel (single Div)
     div = Div(
@@ -674,10 +674,13 @@ def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts, f_gcps, pgrid
             };
 
             // Update scatter lidar
-            source_lidar.data = {
-                x: u[i],
-                y: v_flipped[i],
-                z: z[i]
+            if (source_lidar !== null) {
+                source_lidar.data = {
+                    x: u[i],
+                    y: v_flipped[i],
+                    z: z[i]
+                };
+                source_lidar.change.emit();
             };
 
             // Update scatter gcps
@@ -692,7 +695,6 @@ def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts, f_gcps, pgrid
                 image: [imgs_proj[i]]
             };
 
-            source_lidar.change.emit();
             slider_label.text = "<b>" + t_im[i] + "</b>";
         """,
     )
