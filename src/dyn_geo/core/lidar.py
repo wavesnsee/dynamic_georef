@@ -2,21 +2,49 @@ import georef.operators
 import numpy as np
 from pathlib import Path
 from typing import List
+import rasterio
+from rasterio.transform import Affine
+
 from topo_an.core.geo_utils import reproject_rasters, raster_grid
 from topo_an.core.topo import open_sporadic_topos, apply_roi_mask_to_sporadic_topos
 
 
-def lidar_2_local(f_lidar: Path, roi_lidar: Path, odir_cam_mvts:Path, georef_params: List[georef.operators.Georef]):
+def read_lidar(f_lidar: Path, subsample_factor_lidar: int, outdir_lidar: Path):
+
+    src = rasterio.open(f_lidar, 'r+', IGNORE_COG_LAYOUT_BREAK="YES")
+
+    if subsample_factor_lidar is not None:
+        n = subsample_factor_lidar
+        data = src.read()[:, ::n, ::n]
+        transform = src.transform * Affine.scale(n, n)
+        profile = src.profile
+        profile.update(height=data.shape[1], width=data.shape[2], transform=transform)
+
+        # save raster
+        fname = outdir_lidar / f_lidar.name
+        with rasterio.open(fname, "w", **profile) as dst:
+            dst.write(data)
+
+        src = rasterio.open(fname, 'r+', IGNORE_COG_LAYOUT_BREAK="YES")
+
+    return [src]
+
+
+
+
+def lidar_2_local(f_lidar: Path, roi_lidar: Path, odir_cam_mvts:Path, georef_params: List[georef.operators.Georef],
+                  subsample_factor_lidar: int):
     '''
     read lidar data.
     return altitude data in the local reference system of wns site
     '''
     # read lidar
-    lidar = open_sporadic_topos([f_lidar], '2154')
+    outdir_lidar = odir_cam_mvts / 'lidar'
+    lidar = read_lidar(f_lidar, subsample_factor_lidar, outdir_lidar)
+    # lidar = open_sporadic_topos([f_lidar], '')
 
     # apply roi mask to lidar topography
-    outdir_masked = odir_cam_mvts / 'lidar'
-    lidar = apply_roi_mask_to_sporadic_topos(lidar, roi_lidar, outdir_masked)[0]
+    lidar = apply_roi_mask_to_sporadic_topos(lidar, roi_lidar, outdir_lidar)[0]
 
     # change crs of lidar to crs of site if necessary
     if lidar.crs.to_epsg() != georef_params[0].local_srs.horizontal_srs.auth_srid:
@@ -36,10 +64,10 @@ def lidar_2_local(f_lidar: Path, roi_lidar: Path, odir_cam_mvts:Path, georef_par
 
 
 def lidar_geo2pix(f_lidar: Path, roi_lidar: Path, odir_cam_mvts:Path, georef_params: List[georef.operators.Georef],
-                  scaling_percent: int):
+                  scaling_percent: int, subsample_factor_lidar: int):
 
     # get lidar geo data expressed in the local reference system
-    z, lidar_srs_local = lidar_2_local(f_lidar, roi_lidar, odir_cam_mvts, georef_params)
+    z, lidar_srs_local = lidar_2_local(f_lidar, roi_lidar, odir_cam_mvts, georef_params, subsample_factor_lidar)
     z = z[0].ravel()
 
     # initialize output variables (list of uv coordinates, list of valid points)
