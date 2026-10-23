@@ -181,12 +181,18 @@ def read_cam_params(dir_cparams, start=None, end=None, only_at_noon=False):
     # read camera parameters
     for f in ls_cparams:
         gp = Georef.from_param_file(f)
-        if not only_at_noon:
-            gp._undistort_map_x = None
-            gp._undistort_map_y = None
         georef_params.append(gp)
 
-    return t_cparams, georef_params
+        # make gp light by removing distorsion map
+        gp._undistort_map_x = None
+        gp._undistort_map_y = None
+
+    # get distorsion maps only once as it does not change
+    gp = Georef.from_param_file(f)
+    undistort_map_x = gp._undistort_map_x
+    undistort_map_y = gp._undistort_map_y
+
+    return t_cparams, georef_params, [undistort_map_x, undistort_map_y]
 
 
 def run(dir_h, dir_imgs, ref_img_fn, f_gcps, f_cam_params, start, end, roi_low_distort, dir_gcps, odir_cparams):
