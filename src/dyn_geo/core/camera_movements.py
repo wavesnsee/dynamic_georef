@@ -514,20 +514,15 @@ def get_periods(date, quats, outdir_cam_mvts):
     return df_period
 
 
-def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts, f_gcps, pgrid, f_lidar, roi_lidar,
-                     start, end, only_at_noon, scaling_pcent=20):
+def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts, f_gcps, pgrid, plot_lidar, f_lidar, roi_lidar,
+                     subsample_factor_lidar, start, end, only_at_noon, scaling_pcent=20):
     '''
     # Slider plot of 3D camera movements, and raw/projected images
     '''
 
     # load georef parameters for each target image
-    t_cparams, georef_params = read_cam_params(odir_cparams_smooth, start, end, only_at_noon=only_at_noon)
-
-    # list of uv lidar
-    u, v, z = lidar_geo2pix(f_lidar, roi_lidar, odir_cam_mvts, georef_params, scaling_pcent)
-
-    # list of uv gcps
-    u_gcps, v_gcps, z_gcps = gcps_geo_2pix(f_gcps, georef_params, scaling_pcent)
+    t_cparams, georef_params, undistort_map = read_cam_params(odir_cparams_smooth, start, end,
+                                                              only_at_noon=only_at_noon)
 
     # 3D camera plots
     svg_strings_c3d = plot_3d_vecs(georef_params)
@@ -547,9 +542,20 @@ def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts, f_gcps, pgrid
     # get list of rgba ims
     rgba, width, height = img.ls_im_2rgba(ls, scaling_pcent)
 
-    # pre-compute flipped v-coordinates for lidar display (Bokeh y-axis is top-down)
-    v_flipped = [height - v[i] for i in range(len(v))]
-    v_flipped_gcps = [height - v_gcps[i] for i in range(len(v_gcps))]
+    # list of uv gcps
+    u_gcps, v_gcps, z_gcps = gcps_geo_2pix(f_gcps, georef_params, scaling_pcent)
+    v_flipped_gcps = [height - v_gcps[i] for i in range(len(v_gcps))]  # make v compatible with bokeh plot
+
+    # list of uv lidar
+    if plot_lidar:
+        u, v, z = lidar_geo2pix(f_lidar, roi_lidar, odir_cam_mvts, georef_params, scaling_pcent, subsample_factor_lidar)
+        v_flipped = [height - v[i] for i in range(len(v))] # make v compatible with bokeh plot
+        # color mapper
+        color_mapper = get_color_mapper(low=np.nanmin(z[0]), high=np.nanmax(z[0]), type='topo')
+    else:
+        u, v_flipped, z = None, None, None
+        # color mapper
+        color_mapper = get_color_mapper(low=np.nanmin(z_gcps), high=np.nanmax(z_gcps), type='topo')
 
     # Left panel (single Div)
     div = Div(
@@ -557,9 +563,6 @@ def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts, f_gcps, pgrid
         width=400,
         height=400,
     )
-
-    # color mapper
-    color_mapper = get_color_mapper(low=np.nanmin(z[0]), high=np.nanmax(z[0]), type='topo')
 
     # Right panel
     source_im = ColumnDataSource(data=dict(image=[rgba[0]]))
@@ -575,17 +578,23 @@ def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts, f_gcps, pgrid
         dh=height
     )
 
-    source_lidar = ColumnDataSource(data=dict(x=u[0], y=v_flipped[0], z=z[0]))
     source_gcps = ColumnDataSource(data=dict(x=u_gcps[0], y=v_flipped_gcps[0], z=z_gcps[0]))
 
-    p.scatter(
-        "x",
-        "y",
-        source=source_lidar,
-        size=3,
-        color=transform("z", color_mapper),
-        legend_label="lidar"
-    )
+    # plot lidar
+    if plot_lidar:
+        source_lidar = ColumnDataSource(data=dict(x=u[0], y=v_flipped[0], z=z[0]))
+        p.scatter(
+            "x",
+            "y",
+            source=source_lidar,
+            size=3,
+            color=transform("z", color_mapper),
+            legend_label="lidar"
+        )
+    else:
+        source_lidar = None
+
+    # plot gcps
     p.scatter(
         "x",
         "y",
@@ -602,7 +611,7 @@ def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts, f_gcps, pgrid
     p.legend.location = "top_left"
 
     # project images
-    imgs_proj = project_ls_im(ls, georef_params, pgrid, z_proj=9.0)
+    imgs_proj = project_ls_im(ls, georef_params, undistort_map, pgrid, z_proj=9.0)
     # height, width
     w = imgs_proj[0].shape[1]
     h = imgs_proj[0].shape[0]
@@ -714,7 +723,7 @@ def run(f_cam_params, dir_cparams_raw, odir_cparams_smooth, odir_cam_mvts, smoot
     angles_init, position_init = compute_cam_mvts([Georef.from_param_file(f_cam_params)])
 
     # load georef parameters for each target image
-    date, georef_params = read_cam_params(dir_cparams_raw)
+    date, georef_params, _ = read_cam_params(dir_cparams_raw)
 
     # compute camera movements of each target image
     angles, position = compute_cam_mvts(georef_params)
