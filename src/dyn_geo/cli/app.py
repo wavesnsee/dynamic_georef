@@ -32,6 +32,8 @@ class ProjectionGrid(BaseModel):
 class Plot3d(BaseModel):
     f_lidar: Path
     roi_lidar: Path
+    plot_lidar: bool
+    subsample_factor_lidar: int
     start: datetime
     end: datetime
     only_at_noon: bool
@@ -114,6 +116,8 @@ def main(
         if conf.warp:
             print('warp images')
             warp.main(conf)
+
+        # TODO project images
 
     except Exception as e:  # noqa: BLE001
         typer.secho(f"An error occurred: {e}", fg=typer.colors.RED)
