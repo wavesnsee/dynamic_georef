@@ -638,7 +638,8 @@ def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts, f_gcps, pgrid
         end=len(ls) - 1,
         value=0,
         step=1,
-        show_value=False
+        show_value=False,
+        width=600
     )
 
     slider_label = Div(text=f'<b>{t_im[0]}<b>', width=400)
