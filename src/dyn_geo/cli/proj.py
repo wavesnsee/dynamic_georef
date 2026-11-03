@@ -10,5 +10,6 @@ def main(conf):
                    conf.end,
                    conf.pgrid,
                    path.cam_params_raw,
+                   path.cam_mvts,
                    path.projected
                   )

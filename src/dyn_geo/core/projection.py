@@ -1,3 +1,8 @@
+from pathlib import Path
+from datetime import datetime
+
+import pandas as pd
+import numpy as np
 import turbojpeg as tjpeg
 jpeg = tjpeg.TurboJPEG()
 
@@ -53,7 +58,14 @@ def project_ls_im(ls, georef_params, undistort_map, pgrid, odir,
 
 
 
-def run(dir_imgs, start, end, pgrid, dir_cparams, odir):
+def run(dir_imgs: Path,
+        start: datetime,
+        end: datetime,
+        pgrid: ProjectionGrid,
+        dir_cparams: Path,
+        dir_cam_mvts: Path,
+        odir: Path,
+        use_raw_cparams=True):
     '''
     project images
 
@@ -63,10 +75,20 @@ def run(dir_imgs, start, end, pgrid, dir_cparams, odir):
     :param pgrid: projection grid infos
     :param dir_cparams: directory containing computed camera parameters
     :param odir: output directory in which projected images are to be stored
+    :param use_raw_cparams: boolean to specifiy if we want to project images from raw or smooth camera parameters
     '''
 
     # load georef parameters for each target image
     t_cparams, georef_params, undistort_map = read_cam_params(dir_cparams, start, end)
+
+    # read despiking
+    if use_raw_cparams:
+        f_despiking = dir_cam_mvts.joinpath('despiking.csv')
+        df = pd.read_csv(f_despiking, parse_dates=["raw_cparam_date"])
+        df = df[df["raw_cparam_date"].isin(t_cparams)]
+        valid = df['valid']
+        t_cparams = t_cparams[valid]
+        georef_params = np.array(georef_params)[valid]
 
     # list of target images
     ls = sorted(dir_imgs.glob('*.jp*g'))

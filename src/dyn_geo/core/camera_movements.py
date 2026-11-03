@@ -1,6 +1,7 @@
 import io
 import json
 from copy import copy
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -169,6 +170,21 @@ def keep_valid(date, georef_params, angles, position, valid):
     position['y'] = np.array(position['y'])[valid]
     position['z'] = np.array(position['z'])[valid]
     return date, georef_params, angles, position
+
+
+def save_despiking(t_cparams: numpy.array, valid: numpy.array, odir_cam_mvts: Path):
+    '''
+    save despiking to csv
+    '''
+
+    # dataframe
+    df = pd.DataFrame({'raw_cparam_date': t_cparams, 'valid': valid})
+
+    # save to csv
+    f_csv = odir_cam_mvts.joinpath('despiking.csv')
+    df.to_csv(f_csv, index=False)
+
+    return
 
 
 def plot_despiking(date, position, valid, position_init, d_pos, threshold_d, outdir_cam_mvts):
@@ -726,8 +742,8 @@ def run(f_cam_params, dir_cparams_raw, odir_cparams_smooth, odir_cam_mvts, smoot
     # compute camera position from initial georef
     angles_init, position_init = compute_cam_mvts([Georef.from_param_file(f_cam_params)])
 
-    # load georef parameters for each target image
-    date, georef_params, _ = read_cam_params(dir_cparams_raw)
+    # load raw georef parameters for each target image
+    t_cparams, georef_params, _ = read_cam_params(dir_cparams_raw)
 
     # compute camera movements of each target image
     angles, position = compute_cam_mvts(georef_params)
@@ -736,17 +752,20 @@ def run(f_cam_params, dir_cparams_raw, odir_cparams_smooth, odir_cam_mvts, smoot
     threshold_d = 0.5 # in m
     d_pos, valid = despike_cam_mvts(position_init, position, threshold_d=threshold_d)
 
+    # save despiking
+    save_despiking(t_cparams, valid, odir_cam_mvts)
+
     # plot despiking
-    plot_despiking(date, position, valid, position_init, d_pos, threshold_d, odir_cam_mvts)
+    plot_despiking(t_cparams, position, valid, position_init, d_pos, threshold_d, odir_cam_mvts)
 
     # keep only valid data
-    date, georef_params, angles, position = keep_valid(date, georef_params, angles, position, valid)
+    t_cparams, georef_params, angles, position = keep_valid(t_cparams, georef_params, angles, position, valid)
 
     # quaternions
     quats = get_quaternions(georef_params)
 
     # get subperiods from large camera movements
-    df_periods = get_periods(date, quats, odir_cam_mvts)
+    df_periods = get_periods(t_cparams, quats, odir_cam_mvts)
 
     # smooth extrinsic parameters of target images
     georef_params_smooth = smooth_targets_extrinsic(quats, georef_params, df_periods, smooth_w)
@@ -755,10 +774,10 @@ def run(f_cam_params, dir_cparams_raw, odir_cparams_smooth, odir_cam_mvts, smoot
     angles_smooth, position_smooth = compute_cam_mvts(georef_params_smooth)
 
     # plot camera movements raw and smoothed
-    plot_cam_mvts(date, angles, position,
+    plot_cam_mvts(t_cparams, angles, position,
                   angles_smooth, position_smooth,
                   angles_init, position_init,
                   odir_cam_mvts)
 
     # compute and save smoothed camera parameters
-    save_smooth_cam_params(f_cam_params, date, angles_smooth, position_smooth, odir_cparams_smooth, cam_id)
+    save_smooth_cam_params(f_cam_params, t_cparams, angles_smooth, position_smooth, odir_cparams_smooth, cam_id)
