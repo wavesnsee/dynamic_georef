@@ -12,10 +12,14 @@ def save_h(H, outdir, stem):
     return
 
 
-def compute(path, f_roi_low_distort: Path):
+def ls_period():
+    return
+
+
+def compute(dir_matches_data_raw: Path, dir_h: Path, dir_matches_data_filtered: Path, f_roi_low_distort: Path):
 
     # read raw matches
-    ls, df_m = read_matches(path.matches_data_raw)
+    ls, df_m = read_matches(dir_matches_data_raw)
 
     # read roi of low distorsion
     roi_ld = read_polygon_roi(f_roi_low_distort)
@@ -39,10 +43,10 @@ def compute(path, f_roi_low_distort: Path):
         H, inlier_mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, 2)
 
         # save homography
-        save_h(H, path.h, ls[i].stem)
+        save_h(H, dir_h, ls[i].stem)
 
         # save filtered matching points
-        save_matches(src_pts, dst_pts, path.matches_data_filtered, ls[i].stem, valid_mask=np.squeeze(inlier_mask))
+        save_matches(src_pts, dst_pts, dir_matches_data_filtered, ls[i].stem, valid_mask=np.squeeze(inlier_mask))
 
     return
 

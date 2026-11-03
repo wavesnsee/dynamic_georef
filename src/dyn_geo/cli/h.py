@@ -3,4 +3,9 @@ from dyn_geo.cli.paths_subdirs_out import Paths
 
 def main(conf):
 
-    homography.compute(Paths(conf.outdir, conf.matching), conf.f_roi_low_distort)
+    path = Paths(conf.outdir, conf.matching)
+
+    homography.compute(path.matches_data_raw,
+                       path.h,
+                       path.matches_data_filtered,
+                       conf.f_roi_low_distort)
