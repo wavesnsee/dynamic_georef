@@ -36,7 +36,7 @@ def compute(path, f_roi_low_distort: Path):
         dst_pts = np.reshape(dst_pts, (len(dst_pts), 1, 2))
 
         # compute homography and inliers
-        H, inlier_mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, 5)
+        H, inlier_mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, 2)
 
         # save homography
         save_h(H, path.h, ls[i].stem)
