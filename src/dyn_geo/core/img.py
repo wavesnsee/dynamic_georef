@@ -13,7 +13,7 @@ def is_jpeg(buffer: bytes) -> bool:
     return buffer[-2:] == b"\xff\xd9"
 
 
-def read_jpeg(fname, pixel_format=tjpeg.TJPF_BGR, convert_to_rgb=True) -> np.ndarray:
+def read_jpeg(fname, pixel_format=tjpeg.TJPF_RGB) -> np.ndarray:
     fname = fname
     with fname.open("rb") as fp:
         buffer = fp.read()
@@ -21,10 +21,6 @@ def read_jpeg(fname, pixel_format=tjpeg.TJPF_BGR, convert_to_rgb=True) -> np.nda
     if not is_jpeg(buffer=buffer):
         raise ValueError(f"JPEG File '{fname}' is corrupted")
     im = jpeg.decode(buffer, pixel_format)
-
-    # convert from bgr to rgb
-    if convert_to_rgb and (pixel_format==tjpeg.TJPF_BGR):
-        im = cv2.cvtColor(im, cv2.COLOR_BGR2RGB)
 
     return im
 
