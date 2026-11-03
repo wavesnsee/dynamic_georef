@@ -15,8 +15,8 @@ pgrid:
   ymax: 60
   res: 0.5
   z: 8.6
-start: 2026-05-15 00:00 # start for computation of feature matching, and raw extrinsic
-end: 2026-05-31 20:00 # end for computation of feature matching, and raw extrinsic
+start: 2026-05-15 00:00 # start for computation of feature matching, raw extrinsic, warp, and projection
+end: 2026-05-31 20:00 # end for computation of feature matching, raw extrinsic, warp, and projection
 smooth_w: '3D' # smoothing window used in rolling mean of quaternions and tvecs' components
 outdir: '/home/florent/Projects/Caparica/caparica_3/test_dyn_geo/'
 plot3d:
@@ -27,12 +27,12 @@ plot3d:
   start: 2026-05-26 00:00 # start for plot3d
   end: 2026-05-27 20:00 # end for plot3d
   only_at_noon: False
-compute_fm: True
+compute_fm: False
 compute_h: False
 plot_fm: False
 acc_metrics: False
 compute_raw_extrinsic: False
 compute_smooth_extrinsic: False
 plot_cam_3d_mvts: False
-warp: False
+warp: True
 project: False
