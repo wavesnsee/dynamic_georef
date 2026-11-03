@@ -6,6 +6,8 @@ def main(conf):
     path = Paths(conf.outdir, conf.matching)
 
     warp_imgs.run(conf.target_imgs.dir,
+                  conf.start,
+                  conf.end,
                   path.h,
                   path.warped
                   )
