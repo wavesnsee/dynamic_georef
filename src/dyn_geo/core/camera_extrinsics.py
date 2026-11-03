@@ -77,7 +77,7 @@ def save_extrinsic(rvec: np.array,
 
 
 def compute_targets_extrinsic(dir_h, f_gcps, f_cam_params, target_imgs_dir, ref_img_fn, dir_gcps, f_roi_low_distort,
-                              start, end, outdir_cam_params_upd, plot_gcps=True):
+                              start, end, outdir_cam_params_upd, plot_gcps=False):
 
     # list of homography matrixes
     ls_h = img.ls_period(dir_h, start, end, extension='*.npy')
