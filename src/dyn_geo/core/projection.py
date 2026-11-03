@@ -1,3 +1,5 @@
+import turbojpeg as tjpeg
+jpeg = tjpeg.TurboJPEG()
 
 from georef.operators import ProjectionGrid, Projector
 from dyn_geo.core.camera_extrinsics import read_cam_params
@@ -28,7 +30,7 @@ def project_ls_im(ls, georef_params, undistort_map, pgrid, odir,
     for i, f in enumerate(ls):
 
         # read im
-        im = img.read_jpeg(f)
+        im = img.read_jpeg(f, convert_to_rgb=False)
 
         # projector
         gp = georef_params[i]
