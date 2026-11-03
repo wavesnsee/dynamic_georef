@@ -10,9 +10,9 @@ matching: 'flann' # bfmatcher or flann
 f_roi_low_distort: '/home/florent/Projects/Caparica/caparica_3/images/ref/A_caparica_3_2fps_600s_20260622_11_20_roi_ld.json'
 pgrid:
   xmin: 67
-  xmax: 600
+  xmax: 210
   ymin: -10
-  ymax: 185
+  ymax: 60
   res: 0.5
   z: 8.6
 start: 2026-05-15 00:00 # start for computation of feature matching, and raw extrinsic
@@ -24,14 +24,15 @@ plot3d:
   roi_lidar: '/home/florent/Projects/Caparica/caparica_3/info/roi/roi_lidar_c3.gpkg'
   plot_lidar: True
   subsample_factor_lidar: 10
-  start: 2026-05-15 00:00 # start for plot3d
-  end: 2026-05-16 20:00 # end for plot3d
+  start: 2026-05-26 00:00 # start for plot3d
+  end: 2026-05-27 20:00 # end for plot3d
   only_at_noon: False
-compute_fm: False
+compute_fm: True
 compute_h: False
 plot_fm: False
 acc_metrics: False
 compute_raw_extrinsic: False
 compute_smooth_extrinsic: False
-plot_cam_3d_mvts: True
+plot_cam_3d_mvts: False
 warp: False
+project: False
