@@ -30,7 +30,7 @@ def project_ls_im(ls, georef_params, undistort_map, pgrid, odir,
     for i, f in enumerate(ls):
 
         # read im
-        im = img.read_jpeg(f, convert_to_rgb=False)
+        im = img.read_jpeg(f, pixel_format=tjpeg.TJPF_BGR)
 
         # projector
         gp = georef_params[i]
