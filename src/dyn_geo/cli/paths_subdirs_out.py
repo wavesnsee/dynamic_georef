@@ -19,6 +19,7 @@ class Paths:
     h: Path = field(init=False)
     gcps_raw_warped: Path = field(init=False)
     warped: Path = field(init=False)
+    projected: Path = field(init=False)
 
     def __post_init__(self):
         """Initialize subdirectories after creation"""
@@ -35,6 +36,7 @@ class Paths:
         self.acc_metrics_h = self.outdir / "2_H" / "plots" / "acc_metrics"
         self.gcps_raw_warped  = self.outdir / "2_H" / "plots" / "gcps_raw_warped"
         self.warped = self.outdir / "2_H" / "plots" / "warped_imgs"
+        self.projected = self.outdir / "5_projected"
         self.create_all()
 
     def create_all(self):

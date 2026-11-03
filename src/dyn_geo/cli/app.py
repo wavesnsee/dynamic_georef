@@ -8,7 +8,7 @@ from pydantic import BaseModel
 
 import typer
 
-from dyn_geo.cli import fm, h, accuracy, warp, cam_mvts
+from dyn_geo.cli import fm, h, accuracy, cam_mvts, warp, proj
 
 app = typer.Typer(no_args_is_help=True)
 
@@ -59,6 +59,7 @@ class AppConfig(BaseModel):
     compute_smooth_extrinsic: bool
     plot_cam_3d_mvts: bool
     warp: bool
+    project: bool
 
 
 def load_config(path: str) -> AppConfig:
@@ -101,7 +102,7 @@ def main(
 
         # compute accuracy metrics
         if conf.acc_metrics:
-            print('compute accuracy metrics between ref and target images')
+            print('compute homography accuracy metrics between ref and target images')
             accuracy.main(conf)
 
         # compute camera raw extrinsics, successively raw/smoothed camera movements, and smooth extrinsics
@@ -117,7 +118,12 @@ def main(
             print('warp images')
             warp.main(conf)
 
-        # TODO project images
+        # project images
+        if conf.project:
+            print('project images')
+            proj.main(conf)
+
+
 
     except Exception as e:  # noqa: BLE001
         typer.secho(f"An error occurred: {e}", fg=typer.colors.RED)
