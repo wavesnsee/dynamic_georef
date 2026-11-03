@@ -540,7 +540,7 @@ def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts, f_gcps, pgrid
     t_im = [t.strftime('%Y-%m-%d %H:%M') for t in t_im]
 
     # get list of rgba ims
-    rgba, width, height = img.ls_im_2rgba(ls, scaling_pcent)
+    rgba, width, height = img.ls_im_2rgba(ls, georef_params, undistort_map, scaling_pcent)
 
     # list of uv gcps
     u_gcps, v_gcps, z_gcps = gcps_geo_2pix(f_gcps, georef_params, scaling_pcent)
@@ -611,7 +611,8 @@ def plot_cam_mvts_3d(odir_cparams_smooth, dir_imgs, odir_cam_mvts, f_gcps, pgrid
     p.legend.location = "top_left"
 
     # project images
-    imgs_proj = project_ls_im(ls, georef_params, undistort_map, pgrid, z_proj=9.0)
+    imgs_proj = project_ls_im(ls, georef_params, undistort_map, pgrid)
+
     # height, width
     w = imgs_proj[0].shape[1]
     h = imgs_proj[0].shape[0]

@@ -158,16 +158,24 @@ def edges(gray):
     return process_frame(gray)
 
 
-def ls_im_2rgba(ls, scale_percent, bokeh_compatible=True):
+def ls_im_2rgba(ls, georef_params, undistort_map, scale_percent, bokeh_compatible=True):
 
     # initialize output list of rgba images
     rgba = []
 
     # loop through images
-    for f in ls:
+    for i, f in enumerate(ls):
 
         # read image
         im = read_jpeg(f)
+
+        # georef param
+        gp = georef_params[i]
+        gp._undistort_map_x = undistort_map[0]
+        gp._undistort_map_y = undistort_map[1]
+
+        # undistort image
+        im = gp.undistort(im)
 
         # rescale image
         if scale_percent < 100:
