@@ -12,10 +12,6 @@ def save_h(H, outdir, stem):
     return
 
 
-def ls_period():
-    return
-
-
 def compute(dir_matches_data_raw: Path, dir_h: Path, dir_matches_data_filtered: Path, f_roi_low_distort: Path):
 
     # read raw matches
