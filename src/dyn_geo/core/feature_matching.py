@@ -206,8 +206,9 @@ def run(ref_fn, ref_f_rois, target_imgs_dir, start, end, f_cam_params, type_matc
                 src_pts.append(np.float32([kp[m.trainIdx].pt for m in good]).reshape(-1, 1, 2))
 
         # combine multiple arrays of shape (n, 1, 2) into a single array of shape (total_n, 1, 2)
-        dst_pts = np.vstack(dst_pts)
-        src_pts = np.vstack(src_pts)
+        if len(dst_pts) > 0:
+            dst_pts = np.vstack(dst_pts)
+            src_pts = np.vstack(src_pts)
 
         # save matches
         save_matches(src_pts, dst_pts, path.matches_data_raw, f.stem)
