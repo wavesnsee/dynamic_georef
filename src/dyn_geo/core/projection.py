@@ -12,7 +12,7 @@ from dyn_geo.core import img
 
 
 def project_ls_im(ls, georef_params, undistort_map, pgrid, odir,
-                  return_imgs_proj=True, save_to_files=False, save_format='.png'):
+                  pixel_format=tjpeg.TJPF_RGB, return_imgs_proj=True, save_to_files=False, save_format='.png'):
     '''
     project images
     :param ls: list of jpeg files to be projected
@@ -35,7 +35,7 @@ def project_ls_im(ls, georef_params, undistort_map, pgrid, odir,
     for i, f in enumerate(ls):
 
         # read im
-        im = img.read_jpeg(f, pixel_format=tjpeg.TJPF_BGR)
+        im = img.read_jpeg(f, pixel_format=pixel_format)
 
         # projector
         gp = georef_params[i]
@@ -99,6 +99,6 @@ def run(dir_imgs: Path,
     ls = [ls[i] for i in indices]
 
     # project images
-    project_ls_im(ls, georef_params, undistort_map, pgrid, odir, return_imgs_proj=False, save_to_files=True)
+    project_ls_im(ls, georef_params, undistort_map, pgrid, odir, pixel_format=tjpeg.TJPF_BGR, return_imgs_proj=False, save_to_files=True)
 
     return
