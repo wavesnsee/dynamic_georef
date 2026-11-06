@@ -118,7 +118,12 @@ def compute_err_metrics(
     for f_h in ls:
 
         # load homography matrix
-        H = np.load(f_h)
+        try:
+            H = np.load(f_h)
+
+        except ValueError as e:
+            print(f"Skipping {f_h.name}: could not load ({e})")
+            continue
 
         # read target im
         im, im_gray, _, _ = img.read_im(target_imgs_dir / (f_h.stem + '.jpg'), f_cam_params)
