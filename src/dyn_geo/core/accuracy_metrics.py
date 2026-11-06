@@ -64,7 +64,13 @@ def reprojection_error(
         if f_h.exists:
 
             # load homography matrix
-            H = np.load(f_h)
+            try:
+                H = np.load(f_h)
+
+            except ValueError as e:
+                print(f"Skipping {f_h.name}: could not load ({e})")
+                continue
+
             assert H.shape == (3, 3), "H must be a 3x3 matrix"
 
             # Project src → dst space via H
