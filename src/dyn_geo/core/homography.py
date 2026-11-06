@@ -38,7 +38,8 @@ def compute(dir_matches_data_raw: Path, start: datetime, end: datetime, dir_h: P
         dst_pts = np.reshape(dst_pts, (len(dst_pts), 1, 2))
 
         # compute homography and inliers
-        H, inlier_mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, 2)
+        if len(src_pts) >= 4:
+            H, inlier_mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, 2)
 
         # save homography
         save_h(H, dir_h, ls[i].stem)
