@@ -41,11 +41,11 @@ def compute(dir_matches_data_raw: Path, start: datetime, end: datetime, dir_h: P
         if len(src_pts) >= 4:
             H, inlier_mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, 2)
 
-        # save homography
-        save_h(H, dir_h, ls[i].stem)
+            # save homography
+            save_h(H, dir_h, ls[i].stem)
 
-        # save filtered matching points
-        save_matches(src_pts, dst_pts, dir_matches_data_filtered, ls[i].stem, valid_mask=np.squeeze(inlier_mask))
+            # save filtered matching points
+            save_matches(src_pts, dst_pts, dir_matches_data_filtered, ls[i].stem, valid_mask=np.squeeze(inlier_mask))
 
     return
 
