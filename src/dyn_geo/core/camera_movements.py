@@ -448,7 +448,7 @@ def get_periods(date, quats, outdir_cam_mvts):
         dot = np.clip(np.abs(np.dot(q1, q2)), -1.0, 1.0)  # abs handles double-cover
         return 2 * np.arccos(dot)
 
-    def detect_breakpoints_threshold(motion, k=10.0, min_gap=3):
+    def detect_breakpoints_threshold(motion, k=15.0, min_gap=3):
         median = np.median(motion)
         mad = np.median(np.abs(motion - median)) + 1e-9
         threshold = median + k * mad
