@@ -60,13 +60,10 @@ def get_gcps_xyz(df: pd.DataFrame, georef_params: Georef) -> np.array:
     return gcps_xyz
 
 
-def apply_h_to_gcps(f_h: Path,
+def apply_h_to_gcps(H: np.array,
                     gcps_uv: np.array,
                     df: pd.DataFrame,
                     roi_ld: Polygon):
-
-    # load homography matrix
-    H = np.load(f_h)
 
     # reverse H
     H = np.linalg.inv(H)

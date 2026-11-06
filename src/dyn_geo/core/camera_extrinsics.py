@@ -106,8 +106,15 @@ def compute_targets_extrinsic(dir_h, f_gcps, f_cam_params, target_imgs_dir, ref_
     # loop through homographies to compute corresponding warped gcps and extrinsic parameters
     for i, f_h in enumerate(ls_h):
 
+        # load homography matrix
+        try:
+            H = np.load(f_h)
+        except ValueError as e:
+            print(f"Skipping {f_h.name}: could not load ({e})")
+            continue
+
         # apply homography to gcps pixels' coordinates
-        mask_ld, gcps_uv_warped = apply_h_to_gcps(f_h, gcps_uv, df, roi_ld)
+        mask_ld, gcps_uv_warped = apply_h_to_gcps(H, gcps_uv, df, roi_ld)
 
         # plot gcps on reference image and on target image
         if plot_gcps:
