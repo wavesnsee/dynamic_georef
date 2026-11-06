@@ -114,7 +114,11 @@ def compute_targets_extrinsic(dir_h, f_gcps, f_cam_params, target_imgs_dir, ref_
             continue
 
         # apply homography to gcps pixels' coordinates
-        mask_ld, gcps_uv_warped = apply_h_to_gcps(H, gcps_uv, df, roi_ld)
+        try:
+            mask_ld, gcps_uv_warped = apply_h_to_gcps(H, gcps_uv, df, roi_ld)
+        except np.linalg.LinAlgError as e:
+            print(f"Skipping {f_h.name}: singular matrix ({e})")
+            continue
 
         # plot gcps on reference image and on target image
         if plot_gcps:
