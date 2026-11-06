@@ -51,10 +51,10 @@ def save_matches(src_pts, dst_pts, dir_matches, stem, valid_mask=None):
     return
 
 
-def read_matches(dir_matches):
+def read_matches(dir_matches, start, end):
 
     matches = []
-    ls_csv = sorted(dir_matches.glob('*.csv'))
+    ls_csv = img.ls_period(dir_matches, start, end, extension='*.csv')
     for f in ls_csv:
         matches.append(pd.read_csv(f))
 

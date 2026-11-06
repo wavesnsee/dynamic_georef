@@ -6,6 +6,8 @@ def main(conf):
     path = Paths(conf.outdir, conf.matching)
 
     homography.compute(path.matches_data_raw,
+                       conf.start,
+                       conf.end,
                        path.h,
                        path.matches_data_filtered,
                        conf.f_roi_low_distort)

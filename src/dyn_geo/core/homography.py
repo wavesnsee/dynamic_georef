@@ -1,5 +1,6 @@
 import numpy as np
 from pathlib import Path
+from datetime import datetime
 import cv2
 
 from dyn_geo.core.feature_matching import read_matches, save_matches
@@ -12,10 +13,11 @@ def save_h(H, outdir, stem):
     return
 
 
-def compute(dir_matches_data_raw: Path, dir_h: Path, dir_matches_data_filtered: Path, f_roi_low_distort: Path):
+def compute(dir_matches_data_raw: Path, start: datetime, end: datetime, dir_h: Path, dir_matches_data_filtered: Path,
+            f_roi_low_distort: Path):
 
     # read raw matches
-    ls, df_m = read_matches(dir_matches_data_raw)
+    ls, df_m = read_matches(dir_matches_data_raw, start, end)
 
     # read roi of low distorsion
     roi_ld = read_polygon_roi(f_roi_low_distort)
